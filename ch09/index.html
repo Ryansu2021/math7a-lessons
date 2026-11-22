@@ -13,7 +13,7 @@
 <script>
 'use strict';
 // 3-1 代數式的化簡. Beat table and decisions: books/math7a/chapters/ch09.md.
-const CHAPTER = { number: 9, title: '3-1 代數式的化簡', minutes: 8, language: 'zh-TW' };
+const CHAPTER = { number: 9, title: '3-1 代數式的化簡', minutes: 8, language: 'zh-TW', next: '../ch10/' };
 Object.assign(TRANSLATIONS.zh, { chapterNumber: '七年級上學期 · 第 3 章', chapterComplete: '3-1 完成' });
 
 const VX = '#6b46c1';    // x terms (3-1): like terms that carry the letter
@@ -188,11 +188,12 @@ const BEATS = [
     const p = panel(0);
     const A = row(p, ['2 · (5x)'], 200, 230);
     showAll(A, m('eq', .3));
-    const B = row(p, ['= ', { t: '(2 × 5)', fill: SG }, 'x'], 160, 380);
-    showAll(B, m('assoc', .3), .3);
-    show(word(p, '結合律', B.x + B.w + 30, 370, { size: 30, fill: SG, weight: 700, anchor: 'start' }), m('assoc', .8), .4);
+    const B = row(p, ['= ', { t: '5x + 5x', fill: SG }], 160, 380);
+    showAll(B, m('add', .6), .3);
     const C = row(p, ['= ', { t: '10x', fill: VX }], 160, 530);
-    showAll(C, m('ans', .3), .3);
+    showAll(C, m('ans', .2), .3);
+    show(word(p, '也可以寫成', 160, 655, { size: 36, fill: SG, weight: 700, anchor: 'start' }), m('alt', .3), .4);
+    show(M(p, ['(2 · 5)x'], { x: 360, y: 665, size: 56, fill: SG, anchor: 'start', o: 0 }), m('alt', .3), .4);
     const E1 = row(p, ['(−6x) ÷ ', F(3, 4)], 880, 230);
     showAll(E1, m('div', .3), .3);
     const E2 = row(p, ['= (−6x) × ', { t: [F(4, 3)], fill: SG }], 840, 380);

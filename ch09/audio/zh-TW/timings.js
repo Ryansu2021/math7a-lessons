@@ -163,13 +163,14 @@ window.TIMINGS = {
   ]
  },
  "mulDiv": {
-  "dur": 18.12,
+  "dur": 21.768,
   "marks": {
    "eq": 3.138,
-   "assoc": 4.375,
-   "ans": 7.074,
-   "div": 8.816,
-   "ans2": 12.846
+   "add": 4.428,
+   "ans": 7.753,
+   "alt": 8.936,
+   "div": 12.46,
+   "ans2": 16.489
   },
   "cues": [
    [
@@ -178,10 +179,10 @@ window.TIMINGS = {
    ],
    [
     3.138,
-    "2 \u4e58 5x\uff0c\u7528\u7d50\u5408\u5f8b\uff0c\u5148\u7b97 2 \u4e58 5\uff0c\u7b49\u65bc 10x\u3002"
+    "2 \u4e58 5x\uff0c\u5c31\u662f\u5169\u500b 5x \u76f8\u52a0\uff0c5x \u52a0 5x\uff0c\u7b49\u65bc 10x\uff1b\u4e5f\u53ef\u4ee5\u5beb\u6210 2 \u4e58 5\uff0c\u518d\u4e58 x\u3002"
    ],
    [
-    8.816,
+    12.46,
     "\u8ca0 6x \u9664\u4ee5\u56db\u5206\u4e4b\u4e09\uff0c\u5c31\u662f\u4e58\u4e09\u5206\u4e4b\u56db\uff0c\u4fc2\u6578\u8ca0 6 \u4e58\u4e09\u5206\u4e4b\u56db\uff0c\u7b49\u65bc\u8ca0 8\uff0c\u5f97\u5230\u8ca0 8x\u3002"
    ]
   ]

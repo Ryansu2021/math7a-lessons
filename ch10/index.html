@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3-2 一元一次方程式 — 國中數學七上</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/zh-TW/timings.js"></script>
+<script>
+'use strict';
+// 3-2 一元一次方程式. Beat table and decisions: books/math7a/chapters/ch10.md.
+const CHAPTER = { number: 10, title: '3-2 一元一次方程式', minutes: 8, language: 'zh-TW' };
+Object.assign(TRANSLATIONS.zh, { chapterNumber: '七年級上學期 · 第 3 章', chapterComplete: '3-2 完成' });
+
+const VX = '#6b46c1';    // x terms (3-1)
+const CT = '#137a73';    // constant terms (3-1)
+const LC = '#2f8a4a';    // least common multiple (2-2): clearing the denominators
+const SG = COL.task;     // the step to watch: what is done to both sides, a term that changes sides
+
+/* ---------- chapter drawing helpers ---------- */
+const word = (p, str, x, y, { size = 34, fill = COL.chalk, anchor = 'middle', weight = 500, o = 0 } = {}) =>
+  T(p, str, { x, y, size, fill, anchor, weight, o });
+const showAll = (els, t0, step = .1) => els.forEach((e, i) => show(e, t0 + i * step, .4));
+const pill = (p, str, x, y, color, { size = 34, w } = {}) => {
+  const g = G(p, { o: 0 }), ww = w || str.length * size + 60;
+  mk('rect', { x: x - ww / 2, y: y - size * .95, width: ww, height: size * 1.6, rx: size * .8, fill: color }, g);
+  T(g, str, { x, y: y + size * .05, size, weight: 700, fill: '#fff', anchor: 'middle' });
+  return g;
+};
+// card text: every a/b in the string becomes a stacked fraction (the book never shows a slash fraction)
+const rt = str => str.split(/(−?\d+\/\d+)/).filter(Boolean).map(t => {
+  const f = t.match(/^(−?)(\d+)\/(\d+)$/);
+  return f ? $m(...(f[1] ? ['−'] : []), F(+f[2], +f[3])) : t;
+});
+// one line of maths, each token its own colour: items 'text' | { t, fill }; hidden until shown
+const row = (p, items, x, y, size = 64, anchor = 'start') => tokens(p, items, { x, y, size, anchor, o: 0 });
+const mid = (r, i, j = i) => (r[i]._px - r[i]._w / 2 + r[j]._px + r[j]._w / 2) / 2;
+function frame(p, r, i, j, color, pad = 10) {
+  const l = r[i]._px - r[i]._w / 2 - pad, rr = r[j]._px + r[j]._w / 2 + pad;
+  const g = G(p, { o: 0 });
+  mk('rect', { x: l, y: r.y - r.size * .95, width: rr - l, height: r.size * 1.3, rx: 14, fill: 'none', stroke: color, 'stroke-width': 3 }, g);
+  return g;
+}
+function ruleBox(p, parts, label, y, color, t0, w = 760, size = 48) {
+  const g = G(p, { o: 0, y: 14 });
+  mk('rect', { x: 800 - w / 2, y: y - 70, width: w, height: 150, rx: 22, fill: '#fff', stroke: color, 'stroke-width': 3 }, g);
+  M(g, parts, { x: 800, y: y + 4, size, fill: color });
+  T(g, label, { x: 800, y: y + 58, size: 30, weight: 700, fill: color, anchor: 'middle' });
+  tw(g, { o: 1, y: 0 }, t0, .6, out);
+  return g;
+}
+const sq = (p, str, x, y, color) => chip(p, [str], color, { x, y, o: 0, s: .6, size: 44 });
+const arc = (p, a, b, y, up, color, hgt = 70) => path(p, `M${a} ${y}Q${(a + b) / 2} ${y + (up ? -hgt : hgt)} ${b} ${y}`, { stroke: color, 'stroke-width': 3, fill: 'none' }, { d: 0 });
+// a 1-gram weight on the balance
+function unit(p, x, y) {
+  const g = G(p, { x, y, o: 0, s: .6 });
+  mk('rect', { x: -19, y: -19, width: 38, height: 38, rx: 6, fill: '#dff0ed', stroke: CT, 'stroke-width': 2.5 }, g);
+  T(g, '1', { x: 0, y: 9, size: 24, fill: CT, weight: 700, anchor: 'middle' });
+  return g;
+}
+// move token i of row A to the other side of the equation: it lifts, travels to the end, and turns into newParts;
+// the tokens after it close the gap. Returns the right edge of the new line.
+function moveTerm(p, A, i, newParts, t0) {
+  const tok = A[i], w = tok._w;
+  A.slice(i + 1).forEach(e => tw(e, { x: e._px - w }, t0 + .3, .6));
+  const nw = M(p, newParts, { size: A.size, fill: SG, y: A.y, o: 0 });
+  const end0 = A.x + A.w - w, cx = end0 + nw._w / 2;
+  put(nw, { x: cx });
+  tw(tok, { y: A.y - 80 }, t0, .3);
+  tw(tok, { x: cx }, t0 + .2, .7);
+  tw(tok, { y: A.y }, t0 + .8, .3);
+  hide(tok, t0 + 1.1, .2); show(nw, t0 + 1.1, .3);
+  return end0 + nw._w;
+}
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', '3-2 一元一次方程式', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    word(g, '七年級上學期 · 第 3 章', 800, 230, { size: 30, fill: COL.dim, o: 1 });
+    word(g, '3-2 一元一次方程式', 800, 330, { size: 90, weight: 600, o: 1 });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const els = [g];
+    const s1 = word(scene, '姐姐的貼紙是弟弟的 3 倍多 2 張，姐姐有 17 張', 800, 500, { size: 40 });
+    show(s1, m('story', .2), .5); els.push(s1);
+    const s2 = word(scene, '假設弟弟有 x 張', 800, 570, { size: 36, fill: VX, weight: 700 });
+    show(s2, m('story', 5.4), .4); els.push(s2);
+    const E = row(scene, [{ t: '3x + 2', fill: VX }, ' = ', { t: '17', fill: CT }], 800, 690, 84, 'middle');
+    showAll(E, m('eq', .3), .5); els.push(...E);
+    const q = pill(scene, '一元一次方程式：只含一種未知數、而且是一次的等式', 800, 800, SG, { size: 30 });
+    show(q, m('def', .8), .5); els.push(q);
+    els.forEach(x => hide(x, D - .7, .6));
+  }],
+
+  ['write', '列出方程式', (m, D) => {
+    const p = panel(0);
+    const L = [['比 x 小 4 的數是 9', ['x − 4 = 9'], 'a'], ['x 的 2 倍加 7 等於 −3', ['2x + 7 = −3'], 'b'], ['把 y 平分成 6 份，每份是 5', [F('y', 6), ' = 5'], 'c']];
+    L.forEach(([str, ex, k], i) => {
+      const y = 250 + i * 180, t0 = m(k, .2);
+      show(word(p, str, 780, y, { size: 42, anchor: 'end' }), t0, .4);
+      show(word(p, '→', 860, y - 4, { size: 48, fill: COL.dim }), t0 + .6, .3);
+      show(M(p, ex, { x: 930, y: y + 6, size: i === 2 ? 76 : 68, anchor: 'start', fill: VX, o: 0 }), t0 + 1, .4);
+    });
+  }],
+
+  ['q1', '隨堂練習', () => {
+    const p = panel(0);
+    show(word(p, '筆每枝 x 元，買 5 枝', 800, 260, { size: 54 }), .3, .5);
+    show(word(p, '再買一本 30 元的筆記本，共付 130 元', 800, 380, { size: 54 }), .6, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-equation', prompt: ['筆每枝 x 元，買 5 枝，再買一本 30 元的筆記本，共付 130 元。列出方程式。'],
+    build: blanks([{ parts: [{ box: '5' }, 'x + ', { box: '30' }, ' = 130'],
+      why: '5 枝筆是 5x 元，加上筆記本 30 元，等於 130 元：5x + 30 = 130。', hint: '5 枝筆是 5 × x，記成 5x；再加上筆記本的錢。' }]),
+  }], done) }],
+
+  ['solution', '方程式的解', (m, D) => {
+    const p = panel(0);
+    show(M(p, ['3x + 2 = 17'], { x: 800, y: 190, size: 72, o: 0 }), .3, .5);
+    const R = [[3, 11, m('try', .4)], [4, 14, m('try', 3.4)], [5, 17, m('ok', .3)]];
+    R.forEach(([v, val, t0], i) => {
+      const y = 340 + i * 115, ok = val === 17;
+      show(M(p, [`x = ${v}`], { x: 560, y, size: 56, anchor: 'end', fill: SG, o: 0 }), t0, .3);
+      show(M(p, [`3 × ${v} + 2 = ${val}`], { x: 640, y, size: 56, anchor: 'start', o: 0 }), t0 + .4, .4);
+      show(word(p, ok ? '= 17  ✓' : '≠ 17', 1100, y - 6, { size: 40, fill: ok ? VX : COL.dim, weight: 700, anchor: 'start' }), t0 + (ok ? 2.4 : 1.2), .3);
+    });
+    const fr = G(p, { o: 0 });
+    mk('rect', { x: 400, y: 520, width: 860, height: 90, rx: 18, fill: 'none', stroke: VX, 'stroke-width': 3 }, fr);
+    show(fr, m('def', .3), .4);
+    show(pill(p, '能使等號兩邊相等的數，叫做方程式的解', 800, 730, VX, { size: 32 }), m('def', 1), .5);
+  }],
+
+  ['q2', '隨堂練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'c-root', prompt: ['x = −2 是下面哪一個方程式的解？'],
+    build: choice([
+      [$m('3x + 2 = 1')],
+      [$m('x + 3 = 2x − 5')],
+      [$m('4x − 3 = 2x − 7')],
+      [$m('2 − x = x')],
+    ], 2, '代入 x = −2：左邊 4 × (−2) − 3 = −11，右邊 2 × (−2) − 7 = −11，兩邊相等。', [
+      '3 × (−2) + 2 = −4，不等於 1。',
+      '左邊 −2 + 3 = 1，右邊 2 × (−2) − 5 = −9，兩邊不相等。',
+      null,
+      '左邊 2 − (−2) = 4，右邊是 −2，兩邊不相等。',
+    ]),
+  }], done) }],
+
+  ['balance', '等量公理', (m, D) => {
+    const p = panel(0);
+    draw(path(p, 'M170 440H1030', { stroke: COL.chalk, 'stroke-width': 6, 'stroke-linecap': 'round' }, { d: 0 }), .3, .6);
+    show(path(p, 'M600 446L555 610H645Z', { fill: COL.dim, stroke: 'none' }, { o: 0 }), .5, .4);
+    const xs = [240, 320].map(x => sq(p, 'x', x, 404, VX));
+    const lu = [392, 438, 484].map(x => unit(p, x, 418));
+    const ru = [[740, 418], [786, 418], [832, 418], [878, 418], [763, 372], [809, 372], [855, 372]].map(([x, y]) => unit(p, x, y));
+    xs.forEach((e, i) => pop(e, m('eq', .5 + i * .2)));
+    lu.forEach((e, i) => pop(e, m('eq', 1.6 + i * .15)));
+    ru.forEach((e, i) => pop(e, m('eq', 3.2 + i * .1)));
+    const eq = (parts, y, t0, fill = COL.chalk) => show(M(p, parts, { x: 1330, y, size: 60, fill, o: 0 }), t0, .4);
+    eq(['2x + 3 = 7'], 250, m('eq', 5.2));
+    show(word(p, '兩邊同減 3', 1330, 330, { size: 30, fill: SG, weight: 700 }), m('take', .3), .4);
+    [...lu, ...ru.slice(4)].forEach((e, i) => tw(e, { o: 0, y: (i < 3 ? 418 : 372) - 70 }, m('take', .8 + (i % 3) * .1), .5));
+    eq(['2x = 4'], 420, m('take', 2.6));
+    show(word(p, '兩邊同除以 2', 1330, 500, { size: 30, fill: SG, weight: 700 }), m('half', .3), .4);
+    tw(xs[1], { o: 0, y: 334 }, m('half', 1.2), .5);
+    ru.slice(2, 4).forEach(e => tw(e, { o: 0, y: 348 }, m('half', 1.2), .5));
+    eq(['x = 2'], 590, m('half', 3), VX);
+    ruleBox(p, ['a = b  →  a + c = b + c，a − c = b − c，a × c = b × c，a ÷ c = b ÷ c  (c ≠ 0)'], '等量公理：等號兩邊同加、減、乘、除以一個數，等式仍成立', 760, SG, m('rule', .3), 1400, 38);
+  }],
+
+  ['axiom', '同乘、同除', (m, D) => {
+    const p = panel(0);
+    showAll(row(p, [[F('x', 3)], ' = 4'], 180, 230, 80), m('eq', .2));
+    showAll(row(p, [[F('x', 3)], { t: ' × 3', fill: SG }, ' = 4', { t: ' × 3', fill: SG }], 180, 400, 80), m('mul', .2), .3);
+    showAll(row(p, ['x = ', { t: '12', fill: VX }], 180, 560, 80), m('ans', .3), .3);
+    show(word(p, '兩邊同乘以 3', 380, 690, { size: 32, fill: SG, weight: 700 }), m('mul', .5), .4);
+    showAll(row(p, ['−2x = 10'], 820, 230, 72), m('eq2', .2));
+    showAll(row(p, ['−2x', { t: ' ÷ (−2)', fill: SG }, ' = 10', { t: ' ÷ (−2)', fill: SG }], 820, 400, 72), m('div', .2), .3);
+    showAll(row(p, ['x = ', { t: '−5', fill: VX }], 820, 560, 72), m('ans2', .3), .3);
+    show(word(p, '兩邊同除以 −2', 1160, 690, { size: 32, fill: SG, weight: 700 }), m('div', .5), .4);
+  }],
+
+  ['q3', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['x − 6 = −2'], { x: 330, y: 380, size: 72, o: 0 }), .3, .5);
+    show(M(p, [F('x', 5), ' = −3'], { x: 800, y: 380, size: 72, o: 0 }), .5, .5);
+    show(M(p, ['−4x = 28'], { x: 1270, y: 380, size: 72, o: 0 }), .7, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-axiom', prompt: ['用等量公理解方程式。'],
+    build: blanks([
+      { parts: ['x − 6 = −2      x = ', { box: '4' }], why: '兩邊同加 6：x = −2 + 6 = 4。', hint: '兩邊同加 6。' },
+      { parts: [F('x', 5), ' = −3      x = ', { box: '-15' }], why: '兩邊同乘以 5：x = (−3) × 5 = −15。', hint: '兩邊同乘以 5。' },
+      { parts: ['−4x = 28      x = ', { box: '-7' }], why: '兩邊同除以 −4：x = 28 ÷ (−4) = −7。', hint: '兩邊同除以 −4，注意正負號。' },
+    ]),
+  }], done) }],
+
+  ['check', '解方程式與驗算', (m, D) => {
+    const p = panel(0);
+    showAll(row(p, ['4x − 7 = 13'], 440, 190), m('eq', .3));
+    showAll(row(p, ['4x − 7', { t: ' + 7', fill: SG }, ' = 13', { t: ' + 7', fill: SG }], 440, 320), m('add', .3), .3);
+    showAll(row(p, ['4x = 20'], 440, 450), m('add', 1.8), .3);
+    showAll(row(p, ['x = 20', { t: ' ÷ 4', fill: SG }, ' = ', { t: '5', fill: VX }], 440, 580), m('div', .3), .3);
+    show(chip(p, ['驗算：4 × 5 − 7 = 13  ✓'], VX, { x: 800, y: 720, size: 50, o: 0 }), m('check', 1.5), .5);
+  }],
+
+  ['move', '移項法則', (m, D) => {
+    const p = panel(0);
+    const A = row(p, ['x', ' + 8', ' = ', '3'], 480, 210, 72);
+    showAll(A, m('eq', .2));
+    const a1 = arc(p, A[1]._px, A.x + A.w - 10, 140, true, SG, 40);
+    draw(a1, m('go', .2), .5); hide(a1, m('go', 1.8), .3);
+    const e1 = moveTerm(p, A, 1, [' − 8'], m('go', .6));
+    show(M(p, [' = −5'], { x: e1, y: 210, size: 72, fill: VX, anchor: 'start', o: 0 }), m('ans', 1.6), .4);
+    const B = row(p, ['3', 'x', ' = ', '−12'], 480, 400, 72);
+    showAll(B, m('eq2', .2));
+    const a2 = arc(p, B[0]._px, B.x + B.w - 10, 330, true, SG, 40);
+    draw(a2, m('go2', .2), .5); hide(a2, m('go2', 1.8), .3);
+    const e2 = moveTerm(p, B, 0, [' ÷ 3'], m('go2', .6));
+    show(M(p, [' = −4'], { x: e2, y: 400, size: 72, fill: VX, anchor: 'start', o: 0 }), m('ans2', .4), .4);
+    show(word(p, '移項法則', 800, 540, { size: 36, weight: 700, fill: SG }), m('rule', .2), .4);
+    [['加 → 減', 560, 630], ['減 → 加', 1040, 630], ['乘 → 除', 560, 740], ['除 → 乘', 1040, 740]]
+      .forEach(([s, x, y], i) => show(pill(p, s, x, y, SG, { size: 34, w: 300 }), m('rule', 1 + i * .9), .4));
+  }],
+
+  ['bothSides', '兩邊都有 x', (m, D) => {
+    const p = panel(0);
+    const A = row(p, [{ t: '5x', fill: VX }, ' − ', { t: '4', fill: CT }, ' = ', { t: '2x', fill: VX }, ' + ', { t: '11', fill: CT }], 440, 220);
+    showAll(A, m('eq', .3));
+    draw(arc(p, mid(A, 4), mid(A, 0), 150, true, VX, 60), m('move', .8), .5);
+    draw(arc(p, mid(A, 2), A.x + A.w + 20, 250, false, CT, 60), m('move', 1.8), .5);
+    show(pill(p, '移到另一邊要變號', 1300, 220, SG, { size: 30 }), m('move', 1), .4);
+    const B = row(p, [{ t: '5x', fill: VX }, { t: ' − 2x', fill: SG }, ' = ', { t: '11', fill: CT }, { t: ' + 4', fill: SG }], 440, 400);
+    showAll(B, m('move', 3), .3);
+    showAll(row(p, [{ t: '3x', fill: VX }, ' = ', { t: '15', fill: CT }], 440, 550), m('merge', .3), .3);
+    showAll(row(p, ['x = ', { t: '5', fill: VX }], 440, 700), m('ans', .3), .3);
+  }],
+
+  ['q4', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['7x + 3 = 4x − 9'], { x: 450, y: 380, size: 72, o: 0 }), .3, .5);
+    show(M(p, ['6 − 2x = x + 15'], { x: 1150, y: 380, size: 72, o: 0 }), .6, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-both', prompt: ['移項，解下面兩個方程式。'],
+    build: blanks([
+      { parts: ['7x + 3 = 4x − 9      x = ', { box: '-4' }], why: '7x − 4x = −9 − 3，3x = −12，x = −4。', hint: '4x 移到左邊變 −4x，3 移到右邊變 −3。' },
+      { parts: ['6 − 2x = x + 15      x = ', { box: '-3' }], why: '−2x − x = 15 − 6，−3x = 9，x = −3。', hint: 'x 移到左邊變 −x，6 移到右邊變 −6。' },
+    ]),
+  }], done) }],
+
+  ['paren', '有括號的方程式', (m, D) => {
+    const p = panel(0);
+    showAll(row(p, ['2(x + 3) = 5 − (x − 4)'], 380, 200), m('eq', .3));
+    showAll(row(p, [{ t: '2x + 6', fill: SG }, ' = 5 ', { t: '− x + 4', fill: SG }], 380, 340), m('open', .3), .4);
+    show(pill(p, '先去括號', 1330, 330, SG, { size: 30 }), m('open', .2), .4);
+    showAll(row(p, [{ t: '2x + x', fill: VX }, ' = ', { t: '9 − 6', fill: CT }], 380, 480), m('move', .3), .4);
+    show(pill(p, '再移項', 1330, 470, SG, { size: 30 }), m('move', .2), .4);
+    const Dd = row(p, ['3x = 3', '        x = ', { t: '1', fill: VX }], 380, 630);
+    show(Dd[0], m('ans', .2), .4); showAll(Dd.slice(1), m('ans', 1.6), .3);
+  }],
+
+  ['frac', '有分數的方程式', (m, D) => {
+    const p = panel(0);
+    showAll(row(p, [[F('x', 2)], ' + 1 = ', [F('x', 3)], ' + 2'], 380, 220, 88), m('eq', .3), .2);
+    showAll(row(p, ['(', [F('x', 2)], ' + 1)', { t: ' × 6', fill: LC }, ' = (', [F('x', 3)], ' + 2)', { t: ' × 6', fill: LC }], 300, 390, 80), m('lcm', 1.5), .15);
+    show(pill(p, '分母 2、3 的最小公倍數是 6', 800, 790, LC, { size: 30 }), m('lcm', .6), .4);
+    showAll(row(p, ['3x + 6 = 2x + 12'], 380, 540), m('clear', .5), .3);
+    const Dd = row(p, ['3x − 2x = 12 − 6', '        x = ', { t: '6', fill: VX }], 380, 680);
+    show(Dd[0], m('ans', .2), .4); showAll(Dd.slice(1), m('ans', 1.4), .3);
+  }],
+
+  ['q5', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['4(x − 1) = 2x + 6'], { x: 450, y: 380, size: 72, o: 0 }), .3, .5);
+    show(M(p, [F('x + 2', 3), ' = ', F('x − 1', 2)], { x: 1150, y: 380, size: 80, o: 0 }), .6, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-paren', prompt: ['先去括號或去分母，再解方程式。'],
+    build: blanks([
+      { parts: ['4(x − 1) = 2x + 6      x = ', { box: '5' }], why: '4x − 4 = 2x + 6，2x = 10，x = 5。', hint: '先去括號：4x − 4 = 2x + 6。' },
+      { parts: [F('x + 2', 3), ' = ', F('x − 1', 2), '      x = ', { box: '7' }], why: '兩邊同乘以 6：2(x + 2) = 3(x − 1)，2x + 4 = 3x − 3，x = 7。', hint: '兩邊同乘以 6，分子要整個加括號：2(x + 2) = 3(x − 1)。' },
+    ]),
+  }], done) }],
+
+  ['wrap', '重點整理', (m) => {
+    const p = panel(0);
+    const items = [
+      ['一元一次方程式：一種未知數、一次的等式；使兩邊相等的數是它的解', 'w1', ['3x + 2 = 17        x = 5：3 × 5 + 2 = 17'], VX],
+      ['等量公理：兩邊同加、減、乘、除以一個數（除數不為 0），等式仍成立', 'w2', ['2x + 3 = 7  →  2x = 4  →  x = 2'], SG],
+      ['移項法則：加變減、減變加、乘變除、除變乘；先去括號、去分母', 'w3', ['5x − 4 = 2x + 11  →  5x − 2x = 11 + 4'], CT],
+    ];
+    items.forEach(([str, mark, ex, color], i) => {
+      const g = G(p, { x: -16, y: 190 + i * 210, o: 0 });
+      mk('circle', { cx: 160, cy: -12, r: 26, fill: color }, g);
+      T(g, String(i + 1), { x: 160, y: -1, size: 30, fill: '#fff', weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 34, weight: 600 });
+      M(g, ex, { x: 210, y: 82, size: 50, fill: color, anchor: 'start' });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+
+  ['final1', '本節練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-solve', prompt: ['解下面三個方程式。'],
+    build: blanks([
+      { parts: ['9 − 2x = 3x − 6      x = ', { box: '3' }], why: '−2x − 3x = −6 − 9，−5x = −15，x = 3。', hint: '3x 移到左邊、9 移到右邊，都要變號。' },
+      { parts: ['2(3x − 1) − (x + 4) = 4      x = ', { box: '2' }], why: '6x − 2 − x − 4 = 4，5x = 10，x = 2。', hint: '−(x + 4) 去括號是 −x − 4。' },
+      { parts: [F('x', 4), ' − 1 = ', F('x', 6), '      x = ', { box: '12' }], why: '兩邊同乘以 12：3x − 12 = 2x，x = 12。', hint: '分母 4、6 的最小公倍數是 12，兩邊同乘以 12。' },
+    ]),
+  }], done, '本節練習 · 第 1 組，共 2 組') }],
+
+  ['final2', '本節練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-move', prompt: ['下面哪一個移項是正確的？'],
+    build: choice([
+      [$m('x + 6 = 2  →  x = 2 + 6')],
+      [$m('4x = 12  →  x = 12 − 4')],
+      [$m(F('x', 3), ' = 5  →  x = 5 × 3')],
+      [$m('5x = 2x + 9  →  5x + 2x = 9')],
+    ], 2, '除以 3 移到另一邊變成乘以 3：x = 5 × 3 = 15。', [
+      '加 6 移到另一邊要變成減 6：x = 2 − 6。',
+      '4x 是 4 乘 x，乘 4 移過去要變成除以 4：x = 12 ÷ 4。',
+      null,
+      '2x 移到左邊要變號：5x − 2x = 9。',
+    ]),
+  }], done, '本節練習 · 第 2 組，共 2 組') }],
+
+  ['finish', '完成', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>
