@@ -327,7 +327,7 @@ const BEATS = [
     });
   }],
 
-  ['final1', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+  ['final1', '本節練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-std', prompt: ['寫出標準分解式：填入每個質因數的次方。'],
     build: blanks([
       { parts: ['90 = 2', E('a'), ' × 3', E('b'), ' × 5', E('c'), '      a = ', { box: '1' }, '   b = ', { box: '2' }, '   c = ', { box: '1' }],
@@ -335,9 +335,9 @@ const BEATS = [
       { parts: ['168 = 2', E('a'), ' × 3', E('b'), ' × 7', E('c'), '      a = ', { box: '3' }, '   b = ', { box: '1' }, '   c = ', { box: '1' }],
         why: '168 ÷ 2 = 84，84 ÷ 2 = 42，42 ÷ 2 = 21，21 = 3 × 7，所以 168 = 2³ × 3 × 7。', hint: '168 可以連續被 2 除幾次？' },
     ]),
-  }], done, '本章練習 · 第 1 組，共 2 組') }],
+  }], done, '本節練習 · 第 1 組，共 2 組') }],
 
-  ['final2', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+  ['final2', '本節練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-which', prompt: ['下面哪一個是 60 的標準分解式？'],
     build: choice([
       [$m('60 = 2 × 30')],
@@ -350,7 +350,7 @@ const BEATS = [
       '質因數要由小排到大，2 應該寫在 3 前面。',
       null,
     ]),
-  }], done, '本章練習 · 第 2 組，共 2 組') }],
+  }], done, '本節練習 · 第 2 組，共 2 組') }],
 
   ['finish', '完成', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));

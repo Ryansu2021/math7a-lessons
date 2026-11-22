@@ -290,15 +290,15 @@ const BEATS = [
     });
   }],
 
-  ['final1', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+  ['final1', '本節練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-pow', prompt: ['計算下面兩題。'],
     build: blanks([
       { parts: ['(−', F(1, 2), ')', E(4), ' = ', { box: '1/16' }], why: rt('偶數個負數相乘是正的：分子 1⁴ = 1、分母 2⁴ = 16，得 1/16。'), hint: '4 是偶數，答案是正還是負？' },
       { parts: ['2', E(7), ' ÷ 2', E(4), ' × 2', E(0), ' = ', { box: '8' }], why: '2⁷ ÷ 2⁴ = 2³ = 8，再乘 2⁰ = 1，還是 8。', hint: '先用指數相減，再記得 2⁰ = 1。' },
     ]),
-  }], done, '本章練習 · 第 1 組，共 2 組') }],
+  }], done, '本節練習 · 第 1 組，共 2 組') }],
 
-  ['final2', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+  ['final2', '本節練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
     id: 'p-which', prompt: ['下面哪一個式子是正確的？'],
     build: choice([
       [$m('2', E(3), ' × 2', E(4), ' = 2', E(12))],
@@ -311,7 +311,7 @@ const BEATS = [
       '同底數相除是指數相減：2⁶ ÷ 2² = 2⁴，不是 2³。',
       '底數不同不能把指數相加；指數相同可以先乘底數：2³ × 3³ = (2 × 3)³ = 6³。',
     ]),
-  }], done, '本章練習 · 第 2 組，共 2 組') }],
+  }], done, '本節練習 · 第 2 組，共 2 組') }],
 
   ['finish', '完成', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));

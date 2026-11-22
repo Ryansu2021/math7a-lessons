@@ -295,7 +295,7 @@ window.TIMINGS = {
   ]
  },
  "wrap": {
-  "dur": 24.048,
+  "dur": 24.096,
   "marks": {
    "w1": 2.008,
    "w2": 9.827,
@@ -321,20 +321,20 @@ window.TIMINGS = {
    ],
    [
     20.479,
-    "\u63a5\u4e0b\u4f86\uff0c\u505a\u505a\u770b\u672c\u7ae0\u7df4\u7fd2\u3002"
+    "\u63a5\u4e0b\u4f86\uff0c\u505a\u505a\u770b\u672c\u7bc0\u7df4\u7fd2\u3002"
    ]
   ]
  },
  "final1": {
-  "dur": 4.512,
+  "dur": 4.536,
   "marks": {},
   "cues": [
    [
     0.103,
-    "\u672c\u7ae0\u7df4\u7fd2\u3002"
+    "\u672c\u7bc0\u7df4\u7fd2\u3002"
    ],
    [
-    2.048,
+    2.088,
     "\u8a08\u7b97\u4e0b\u9762\u5169\u984c\u3002"
    ]
   ]

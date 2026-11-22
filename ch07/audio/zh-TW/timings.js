@@ -118,8 +118,8 @@ window.TIMINGS = {
   "dur": 20.712,
   "marks": {
    "lcm": 3.883,
-   "conv": 8.816,
-   "ans": 14.827
+   "conv": 8.803,
+   "ans": 14.814
   },
   "cues": [
    [
@@ -131,11 +131,11 @@ window.TIMINGS = {
     "\u5148\u901a\u5206\uff1a\u5206\u6bcd 4 \u548c 6 \u7684\u6700\u5c0f\u516c\u500d\u6578\u662f 12\u3002"
    ],
    [
-    8.816,
+    8.803,
     "\u56db\u5206\u4e4b\u4e09\u7b49\u65bc\u5341\u4e8c\u5206\u4e4b\u4e5d\uff0c\u516d\u5206\u4e4b\u4e94\u7b49\u65bc\u5341\u4e8c\u5206\u4e4b\u5341\u3002"
    ],
    [
-    14.827,
+    14.814,
     "\u5206\u6bcd\u76f8\u540c\u6bd4\u5206\u5b50\uff0c9 \u6bd4 10 \u5c0f\uff0c\u6240\u4ee5\u56db\u5206\u4e4b\u4e09\u6bd4\u8f03\u5c0f\u3002"
    ]
   ]
@@ -199,12 +199,12 @@ window.TIMINGS = {
   ]
  },
  "addDiff": {
-  "dur": 15.552,
+  "dur": 15.6,
   "marks": {
    "eq": 3.192,
    "lcm": 5.625,
-   "conv": 8.577,
-   "ans": 12.553
+   "conv": 8.63,
+   "ans": 12.606
   },
   "cues": [
    [
@@ -367,12 +367,12 @@ window.TIMINGS = {
   ]
  },
  "wrap": {
-  "dur": 24.168,
+  "dur": 24.192,
   "marks": {
    "w1": 2.008,
-   "w2": 6.676,
-   "w3": 12.62,
-   "end": 20.585
+   "w2": 6.662,
+   "w3": 12.606,
+   "end": 20.572
   },
   "cues": [
    [
@@ -384,29 +384,29 @@ window.TIMINGS = {
     "\u7d04\u5206\u7528\u6700\u5927\u516c\u56e0\u6578\uff0c\u901a\u5206\u7528\u6700\u5c0f\u516c\u500d\u6578\u3002"
    ],
    [
-    6.676,
+    6.662,
     "\u52a0\u6e1b\uff1a\u5148\u901a\u5206\uff1b\u6e1b\u53bb\u4e00\u500b\u6578\uff0c\u7b49\u65bc\u52a0\u4e0a\u5b83\u7684\u76f8\u53cd\u6578\u3002"
    ],
    [
-    12.62,
+    12.606,
     "\u4e58\u9664\uff1a\u5148\u5b9a\u6b63\u8ca0\u865f\uff1b\u9664\u4ee5\u4e00\u500b\u6578\uff0c\u7b49\u65bc\u4e58\u4ee5\u5b83\u7684\u5012\u6578\uff1b\u80fd\u7d04\u5206\u5c31\u5148\u7d04\u5206\u3002"
    ],
    [
-    20.585,
-    "\u63a5\u4e0b\u4f86\uff0c\u505a\u505a\u770b\u672c\u7ae0\u7df4\u7fd2\u3002"
+    20.572,
+    "\u63a5\u4e0b\u4f86\uff0c\u505a\u505a\u770b\u672c\u7bc0\u7df4\u7fd2\u3002"
    ]
   ]
  },
  "final1": {
-  "dur": 4.512,
+  "dur": 4.536,
   "marks": {},
   "cues": [
    [
     0.103,
-    "\u672c\u7ae0\u7df4\u7fd2\u3002"
+    "\u672c\u7bc0\u7df4\u7fd2\u3002"
    ],
    [
-    2.048,
+    2.088,
     "\u8a08\u7b97\u4e0b\u9762\u5169\u984c\u3002"
    ]
   ]
