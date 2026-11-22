@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2-4 指數律 — 國中數學七上</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/zh-TW/timings.js"></script>
+<script>
+'use strict';
+// 2-4 指數律. Beat table and decisions: books/math7a/chapters/ch08.md.
+const CHAPTER = { number: 8, title: '2-4 指數律', minutes: 7, language: 'zh-TW' };
+Object.assign(TRANSLATIONS.zh, { chapterNumber: '七年級上學期 · 第 2 章', chapterComplete: '2-4 完成' });
+
+const PR = '#c0397a';    // primes (2-1)
+const GC = '#1f6fc5';    // greatest common factor (2-2): used to reduce
+const LC = '#2f8a4a';    // least common multiple (2-2): used for a common denominator
+const SG = COL.task;     // signs: the rule that decides + or −
+const FILL = '#f3d3e2';
+
+/* ---------- chapter drawing helpers ---------- */
+const word = (p, str, x, y, { size = 34, fill = COL.chalk, anchor = 'middle', weight = 500, o = 0 } = {}) =>
+  T(p, str, { x, y, size, fill, anchor, weight, o });
+const box = (p, x, y, w, h, { fill = 'none', stroke = SG, rx = 16, sw = 3 } = {}) => { const g = G(p, { o: 0 }); mk('rect', { x, y, width: w, height: h, rx, fill, stroke, 'stroke-width': sw }, g); return g; };
+const fr = (n, d, neg) => neg ? ['−', F(n, d)] : [F(n, d)];
+// card text: every a/b in the string becomes a stacked fraction (the book never shows a slash fraction)
+const rt = str => str.split(/(−?\d+\/\d+)/).filter(Boolean).map(t => {
+  const f = t.match(/^(−?)(\d+)\/(\d+)$/);
+  return f ? $m(...(f[1] ? ['−'] : []), F(+f[2], +f[3])) : t;
+});
+// one line of maths laid out by hand: items [parts, x, colour?]; operator strings are set in the text font
+const OPS = { '×': '×', '=': '=', '+': '+', '÷': '÷', '<': '<', '>': '>', '–': '−', '↔': '↔' };
+// stacked fractions set their digits at about half the size, so lines are drawn 1.35× larger and spread 1.25× about the centre
+const K = 1.25, SX = x => 800 + (x - 800) * K;
+function eqLine2(p, items, y, size = 60) {
+  const S = size * 1.35;
+  return items.map(([t, x, fill]) => (typeof t === 'string' && OPS[t])
+    ? T(p, OPS[t], { x: SX(x), y: y + 2, size: 54, fill: fill || COL.dim, anchor: 'middle', o: 0 })
+    : M(p, [].concat(t), { x: SX(x), y: y + S * .3, size: S, fill: fill || COL.chalk, o: 0 }));
+}
+const showAll = (els, t0, step = .1) => els.forEach((e, i) => show(e, t0 + i * step, .4));
+const pill = (p, str, x, y, color, { size = 34, w } = {}) => {
+  const g = G(p, { o: 0 }), ww = w || str.length * size + 60;
+  mk('rect', { x: x - ww / 2, y: y - size * .95, width: ww, height: size * 1.6, rx: size * .8, fill: color }, g);
+  T(g, str, { x, y: y + size * .05, size, weight: 700, fill: '#fff', anchor: 'middle' });
+  return g;
+};
+// a number line from v0 to v1 drawn between x0 and x1 at y
+function numLine(p, v0, v1, x0, x1, y, ticks, t0) {
+  const X = v => x0 + (v - v0) / (v1 - v0) * (x1 - x0);
+  draw(path(p, `M${x0 - 30} ${y}H${x1 + 30}`, { stroke: COL.chalk, 'stroke-width': 3 }, { d: 0 }), t0, .7);
+  show(path(p, `M${x1 + 18} ${y - 10}L${x1 + 34} ${y}L${x1 + 18} ${y + 10}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { o: 0 }), t0 + .6, .2);
+  ticks.forEach((v, i) => {
+    show(path(p, `M${X(v)} ${y - 10}V${y + 10}`, { stroke: COL.chalk, 'stroke-width': 2.5 }, { o: 0 }), t0 + .3 + i * .05, .3);
+    show(M(p, [v < 0 ? '−' + (-v) : String(v)], { x: X(v), y: y + 48, size: 32, fill: COL.dim, o: 0 }), t0 + .3 + i * .05, .3);
+  });
+  return X;
+}
+const dotAt = (p, x, y, color, t0) => { const d = mk('circle', { cx: 0, cy: 0, r: 10, fill: color }, G(p)); const g = d.parentNode; put(g, { x, y, o: 0, s: .4 }); pop(g, t0); return g; };
+
+// a law in a box: the formula and, under it, the words
+function ruleBox(p, parts, label, y, color, t0, w = 760) {
+  const g = G(p, { o: 0, y: 14 });
+  mk('rect', { x: 800 - w / 2, y: y - 70, width: w, height: 150, rx: 22, fill: '#fff', stroke: color, 'stroke-width': 3 }, g);
+  M(g, parts, { x: 800, y: y + 4, size: 56, fill: color });
+  T(g, label, { x: 800, y: y + 58, size: 30, weight: 700, fill: color, anchor: 'middle' });
+  tw(g, { o: 1, y: 0 }, t0, .6, out);
+  return g;
+}
+const sq = (p, str, x, y, color = COL.chalk, size = 44) => chip(p, [str], color, { x, y, o: 0, s: .6, size });
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const POW = (base, n, neg) => neg ? ['(', '−', base, ')', E(n)] : (base.f ? ['(', base, ')', E(n)] : [String(base), E(n)]);
+const BEATS = [
+  ['intro', '2-4 指數律', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    word(g, '七年級上學期 · 第 2 章', 800, 250, { size: 30, fill: COL.dim, o: 1 });
+    word(g, '2-4 指數律', 800, 350, { size: 90, weight: 600, o: 1 });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const row = [];
+    for (let k = 0; k < 19; k++) {
+      const e = k % 2 ? word(scene, '×', 350 + k * 50, 575, { size: 40, fill: COL.dim }) : M(scene, ['2'], { x: 350 + k * 50, y: 585, size: 52, o: 0 });
+      show(e, m('long', .3 + k * .07), .3); row.push(e);
+      tw(e, { o: 0 }, m('short', -.2 + k * .01), .4);
+    }
+    const br = path(scene, 'M340 625Q340 645 360 645H1240Q1260 645 1260 625', { stroke: SG, 'stroke-width': 3, fill: 'none' }, { d: 0 });
+    draw(br, m('long', 1.8), .6);
+    const lab = word(scene, '10 個 2', 800, 690, { size: 32, fill: SG, weight: 700 }); show(lab, m('long', 2.2), .4);
+    hide(br, m('short', -.2), .3); hide(lab, m('short', -.2), .3);
+    const p10 = M(scene, ['2', E(10)], { x: 800, y: 640, size: 150, fill: PR, o: 0, s: .5 });
+    pop(p10, m('short', .3));
+    const q = pill(scene, '找出次方相乘、相除的規律', 800, 790, SG, { size: 32 });
+    show(q, m('sub', 1), .5);
+    [g, p10, q].forEach(e => hide(e, D - .7, .6));
+  }],
+
+  ['fracPow', '分數的乘方', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[POW(F(2, 3), 3), 470], ['=', 600], [[F(2, 3)], 690], ['×', 770], [[F(2, 3)], 850], ['×', 930], [[F(2, 3)], 1010]], 200, 60);
+    show(A[0], m('eq', .2), .4); A.slice(1).forEach((e, i) => show(e, m('eq', 1.6 + i * .15), .4));
+    const B = eqLine2(p, [['=', 600], [[F('2 × 2 × 2', '3 × 3 × 3')], 760]], 370, 60);
+    showAll(B, m('split', .3), .3);
+    const C = eqLine2(p, [['=', 600], [[F('2³', '3³')], 700, PR], ['=', 820], [[F(8, 27)], 920, PR]], 540, 60);
+    showAll(C.slice(0, 2), m('pow', .3), .3); showAll(C.slice(2), m('ans', .3), .3);
+    show(pill(p, '分數的乘方：分子、分母各自乘方', 800, 720, PR, { size: 32 }), m('rule', .3), .5);
+  }],
+
+  ['signPow', '負數的乘方', (m, D) => {
+    const p = panel(0);
+    const half = ['(−', F(1, 2), ')'];
+    const A = eqLine2(p, [[POW(F(1, 2), 2, true), 400], ['=', 500], [[...half, ' × ', ...half], 690], ['=', 880], [['+', F(1, 4)], 960, GC]], 240, 50);
+    showAll(A, m('two', .3), .35);
+    const B = eqLine2(p, [[POW(F(1, 2), 3, true), 400], ['=', 500], [[...half, ' × ', ...half, ' × ', ...half], 750], ['=', 1000], [['−', F(1, 8)], 1080, SG]], 450, 50);
+    showAll(B, m('three', .3), .45);
+    show(pill(p, '偶數次方 → 正', 560, 680, GC, { size: 32 }), m('rule', 1.2), .4);
+    show(pill(p, '奇數次方 → 負', 1040, 680, SG, { size: 32 }), m('rule', 3.2), .4);
+  }],
+
+  ['compare', '乘方比大小', (m, D) => {
+    const p = panel(0);
+    const L = [[F(3, 4), .75], [F(9, 16), 9 / 16], [F(27, 64), 27 / 64]];
+    L.forEach(([f, v], i) => {
+      const y = 280 + i * 130, t0 = m('small', 2.6 + i * 1.3);
+      show(M(p, POW(F(3, 4), i + 1), { x: 270, y: y + 18, size: 58, anchor: 'end', o: 0 }), t0, .3);
+      const bar = mk('rect', { x: 300, y: y - 28, width: 1, height: 56, rx: 6, fill: '#f3d3e2', stroke: PR, 'stroke-width': 2 }, G(p));
+      prog(q => bar.setAttribute('width', Math.max(1, 400 * v * q)), t0, .6, out);
+      show(M(p, [f], { x: 330 + 400 * v, y: y + 16, size: 54, fill: PR, anchor: 'start', o: 0 }), t0 + .5, .3);
+    });
+    const R = ['1.5', '2.25', '3.375'];
+    R.forEach((str, i) => {
+      const y = 280 + i * 130, v = parseFloat(str), t0 = m('big', 2.0 + i * 1.1);
+      show(M(p, ['1.5', E(i + 1)], { x: 990, y: y + 16, size: 48, anchor: 'end', o: 0 }), t0, .3);
+      const bar = mk('rect', { x: 1010, y: y - 28, width: 1, height: 56, rx: 6, fill: '#dbe8f7', stroke: GC, 'stroke-width': 2 }, G(p));
+      prog(q => bar.setAttribute('width', Math.max(1, 108 * v * q)), t0, .6, out);
+      show(M(p, [str], { x: 1030 + 108 * v, y: y + 16, size: 44, fill: GC, anchor: 'start', o: 0 }), t0 + .5, .3);
+    });
+    show(word(p, '小於 1：愈乘愈小', 470, 190, { size: 32, fill: PR, weight: 700 }), m('small', 1), .4);
+    show(word(p, '大於 1：愈乘愈大', 1200, 190, { size: 32, fill: GC, weight: 700 }), m('big', 1), .4);
+    show(pill(p, '正數 a：a < 1 次方愈大愈小；a > 1 次方愈大愈大', 800, 760, SG, { size: 30, w: 960 }), m('rule', .5), .5);
+  }],
+
+  ['q1', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['(−', F(2, 3), ')', E(3), ' = ?'], { x: 800, y: 420, size: 120, o: 0 }), .3, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-fracpow', prompt: ['計算，答案化成最簡分數。'],
+    build: blanks([{ parts: ['(−', F(2, 3), ')', E(3), ' = ', { box: '-8/27' }],
+      why: rt('三個負數相乘是負的；分子 2³ = 8、分母 3³ = 27，所以是 −8/27。'), hint: '奇數次方是正還是負？分子、分母各自乘方。' }]),
+  }], done) }],
+
+  ['order', '含乘方的運算', (m, D) => {
+    const p = panel(0);
+    show(pill(p, '先算乘方', 1270, 150, SG, { size: 32 }), m('first', .2), .4);
+    const A = eqLine2(p, [[POW(F(1, 2), 2, true), 520, SG], ['×', 640], ['8', 700], ['–', 770], ['3', 840]], 220, 56);
+    showAll(A, m('eq', .3), .4);
+    const B = eqLine2(p, [['=', 420], [[F(1, 4)], 520, SG], ['×', 640], ['8', 700], ['–', 770], ['3', 840]], 380, 56);
+    showAll(B, m('pow', 2.5), .15);
+    const C = eqLine2(p, [['=', 420], ['2', 520, GC], ['–', 600], ['3', 680]], 530, 56);
+    showAll(C, m('mul', .6), .15);
+    const Dd = eqLine2(p, [['=', 420], ['−1', 520, PR]], 670, 56);
+    showAll(Dd, m('ans', .6), .3);
+  }],
+
+  ['mult', '同底數相乘', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[['3', E(2)], 640], ['×', 760], [['3', E(4)], 880]], 190, 56);
+    showAll(A, m('eq', .3), .4);
+    const X = [460, 540, 700, 780, 860, 940];
+    const C = X.map((x, i) => sq(p, '3', x, 360, i < 2 ? GC : LC));
+    C.forEach((c, i) => pop(c, m('expand', (i < 2 ? .6 : 1.4) + i * .15)));
+    show(word(p, '×', 620, 375, { size: 40, fill: COL.dim }), m('expand', 1.2), .3);
+    show(word(p, '2 個', 500, 440, { size: 28, fill: GC, weight: 700 }), m('expand', .9), .3);
+    show(word(p, '4 個', 820, 440, { size: 28, fill: LC, weight: 700 }), m('expand', 2.2), .3);
+    show(box(p, 410, 310, 580, 100, { stroke: PR, rx: 50 }), m('count'), .4);
+    show(word(p, '一共 6 個 3', 1150, 375, { size: 34, fill: PR, weight: 700 }), m('count', .3), .4);
+    const B = eqLine2(p, [['=', 560], [['3', E('2 + 4')], 690], ['=', 830], [['3', E(6)], 940, PR]], 560, 56);
+    showAll(B.slice(0, 2), m('count', .8), .3); showAll(B.slice(2), m('ans', .3), .3);
+    ruleBox(p, ['a', E('m'), ' × a', E('n'), ' = a', E('m + n')], '同底數相乘，指數相加', 730, PR, m('rule', .3));
+  }],
+
+  ['div', '同底數相除', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[['2', E(5)], 640], ['÷', 760], [['2', E(2)], 880]], 180, 56);
+    showAll(A, m('eq', .3), .4);
+    const top = [0, 1, 2, 3, 4].map(i => sq(p, '2', 560 + i * 80, 320));
+    const bot = [0, 1].map(i => sq(p, '2', 560 + i * 80, 440));
+    top.forEach((c, i) => pop(c, m('frac', 1.4 + i * .12)));
+    draw(path(p, 'M510 380H930', { stroke: COL.chalk, 'stroke-width': 3.5 }, { d: 0 }), m('frac', 1.2), .4);
+    bot.forEach((c, i) => pop(c, m('frac', 3.0 + i * .15)));
+    [[560, 320], [640, 320], [560, 440], [640, 440]].forEach(([x, y], i) =>
+      draw(path(p, `M${x - 28} ${y + 28}L${x + 28} ${y - 28}`, { stroke: GC, 'stroke-width': 4 }, { d: 0 }), m('cancel', .2 + i * .15), .3));
+    show(box(p, 680, 285, 280, 70, { stroke: PR, rx: 35 }), m('ans', .2), .4);
+    show(word(p, '剩下 3 個 2', 1150, 335, { size: 34, fill: PR, weight: 700 }), m('ans', .4), .4);
+    const B = eqLine2(p, [['=', 560], [['2', E('5 − 2')], 690], ['=', 830], [['2', E(3)], 940, PR]], 580, 56);
+    showAll(B, m('ans', 1), .3);
+    ruleBox(p, ['a', E('m'), ' ÷ a', E('n'), ' = a', E('m − n')], '同底數相除，指數相減', 750, PR, m('rule', .3));
+  }],
+
+  ['q2', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['5', E(3), ' × 5', E(4), ' = 5', E('n')], { x: 800, y: 280, size: 80, o: 0 }), .3, .5);
+    show(M(p, ['7', E(6), ' ÷ 7', E(2), ' = 7', E('k')], { x: 800, y: 470, size: 80, o: 0 }), .6, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-laws', prompt: ['用指數律求 n 和 k。'],
+    build: blanks([
+      { parts: ['5', E(3), ' × 5', E(4), ' = 5', E('n'), '      n = ', { box: '7' }], why: '同底數相乘，指數相加：3 + 4 = 7。', hint: '相乘時，指數要相加還是相乘？' },
+      { parts: ['7', E(6), ' ÷ 7', E(2), ' = 7', E('k'), '      k = ', { box: '4' }], why: '同底數相除，指數相減：6 − 2 = 4。', hint: '相除時，指數相減。' },
+    ]),
+  }], done) }],
+
+  ['powPow', '乘方的乘方', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[['(2', E(3), ')', E(2)], 640]], 200, 60);
+    showAll(A, m('eq', .3));
+    const B = eqLine2(p, [['=', 500], [['2', E(3)], 610], ['×', 710], [['2', E(3)], 810]], 380, 60);
+    showAll(B, m('expand', .3), .25);
+    const C = eqLine2(p, [['=', 500], [['2', E('3 + 3')], 640], ['=', 780], [['2', E(6)], 880, PR]], 560, 60);
+    showAll(C.slice(0, 2), m('add', .3), .3); showAll(C.slice(2), m('ans', .3), .3);
+    show(word(p, '3 × 2 = 6', 1150, 580, { size: 34, fill: SG, weight: 700 }), m('rule', .3), .4);
+    ruleBox(p, ['(a', E('m'), ')', E('n'), ' = a', E('m × n')], '乘方的乘方，指數相乘', 750, PR, m('rule', .5));
+  }],
+
+  ['prodPow', '乘積的乘方', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[['(2 × 5)', E(3)], 600]], 180, 56);
+    showAll(A, m('eq', .3));
+    const B = eqLine2(p, [['=', 460], [['(2 × 5) × (2 × 5) × (2 × 5)'], 830]], 320, 56);
+    showAll(B, m('expand', .3), .3);
+    const C = eqLine2(p, [['=', 460], [['2 × 2 × 2'], 610, GC], ['×', 760], [['5 × 5 × 5'], 910, LC]], 460, 56);
+    showAll(C, m('group', .3), .3);
+    const Dd = eqLine2(p, [['=', 460], [['2', E(3)], 560, GC], ['×', 640], [['5', E(3)], 720, LC], ['=', 800], ['8', 870], ['×', 930], ['125', 1000], ['=', 1080], [['10', E(3)], 1160, PR]], 600, 56);
+    showAll(Dd.slice(0, 4), m('ans', .3), .3); showAll(Dd.slice(4), m('check', .3), .3);
+    ruleBox(p, ['(a × b)', E('m'), ' = a', E('m'), ' × b', E('m')], '乘積的乘方：各自乘方再相乘', 770, PR, m('rule', .5));
+  }],
+
+  ['zero', '0 次方', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[['7', E(3), ' ÷ 7', E(3)], 620], ['=', 780], ['1', 860, GC]], 230, 60);
+    show(A[0], m('eq', .3), .4); showAll(A.slice(1), m('one', 1.5), .3);
+    show(word(p, '自己除以自己', 1100, 245, { size: 30, fill: GC, weight: 700, anchor: 'start' }), m('one', .3), .4);
+    const B = eqLine2(p, [[['7', E(3), ' ÷ 7', E(3)], 620], ['=', 780], [['7', E('3 − 3')], 890], ['=', 1010], [['7', E(0)], 1100, SG]], 410, 60);
+    showAll(B, m('law', .3), .3);
+    show(word(p, '指數律', 1300, 425, { size: 30, fill: SG, weight: 700, anchor: 'start' }), m('law', .6), .4);
+    ruleBox(p, ['a', E(0), ' = 1    (a ≠ 0)'], '不是 0 的數，0 次方等於 1', 620, SG, m('rule', 1.2), 680);
+  }],
+
+  ['q3', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['(3', E(2), ')', E(4), ' = 3', E('n')], { x: 800, y: 280, size: 80, o: 0 }), .3, .5);
+    show(M(p, ['4', E(3), ' × 25', E(3), ' = ?'], { x: 800, y: 470, size: 80, o: 0 }), .6, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-laws2', prompt: ['善用指數律計算。'],
+    build: blanks([
+      { parts: ['(3', E(2), ')', E(4), ' = 3', E('n'), '      n = ', { box: '8' }], why: '乘方的乘方，指數相乘：2 × 4 = 8。', hint: '乘方的乘方，指數要相乘。' },
+      { parts: ['4', E(3), ' × 25', E(3), ' = ', { box: '1000000' }], why: '4³ × 25³ = (4 × 25)³ = 100³ = 1000000。', hint: '指數相同時，可以先把底數相乘：4 × 25 = 100。' },
+    ]),
+  }], done) }],
+
+  ['apply', '綜合練習', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[['(3', E(2), ' × 2)', E(3), ' ÷ 2', E(3)], 720]], 200, 58);
+    showAll(A, m('eq', .3));
+    const B = eqLine2(p, [['=', 420], [['3', E(6)], 520, PR], ['×', 610], [['2', E(3)], 690, GC], ['÷', 770], [['2', E(3)], 850, GC]], 370, 58);
+    showAll(B, m('expand', .8), .3);
+    const C = eqLine2(p, [['=', 420], [['3', E(6)], 520, PR], ['×', 610], [['2', E(0)], 690, GC]], 530, 58);
+    showAll(C, m('cancel', .8), .3);
+    show(word(p, '= 1', 760, 600, { size: 32, fill: GC, weight: 700 }), m('cancel', 4), .3);
+    const Dd = eqLine2(p, [['=', 420], [['3', E(6)], 520, PR], ['=', 620], ['729', 720, PR]], 690, 58);
+    showAll(Dd, m('ans', .5), .4);
+  }],
+
+  ['wrap', '重點整理', (m) => {
+    const p = panel(0);
+    const items = [
+      ['分數的乘方：分子分母各自乘方；負數偶數次方正、奇數次方負', 'w1', ['(', F(2, 3), ')', E(3), ' = ', F('2³', '3³'), '        (−', F(1, 2), ')', E(3), ' = −', F(1, 8)], PR],
+      ['同底數：相乘指數相加、相除指數相減；乘方的乘方指數相乘', 'w2', ['a', E('m'), ' × a', E('n'), ' = a', E('m + n'), '      a', E('m'), ' ÷ a', E('n'), ' = a', E('m − n'), '      (a', E('m'), ')', E('n'), ' = a', E('mn')], GC],
+      ['不是 0 的數，0 次方等於 1', 'w3', ['a', E(0), ' = 1  (a ≠ 0)'], SG],
+    ];
+    items.forEach(([str, mark, ex, color], i) => {
+      const g = G(p, { x: -16, y: 190 + i * 210, o: 0 });
+      mk('circle', { cx: 160, cy: -12, r: 26, fill: color }, g);
+      T(g, String(i + 1), { x: 160, y: -1, size: 30, fill: '#fff', weight: 700, anchor: 'middle' });
+      T(g, str, { x: 210, size: 34, weight: 600 });
+      M(g, ex, { x: 210, y: 82, size: 50, fill: color, anchor: 'start' });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+
+  ['final1', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-pow', prompt: ['計算下面兩題。'],
+    build: blanks([
+      { parts: ['(−', F(1, 2), ')', E(4), ' = ', { box: '1/16' }], why: rt('偶數個負數相乘是正的：分子 1⁴ = 1、分母 2⁴ = 16，得 1/16。'), hint: '4 是偶數，答案是正還是負？' },
+      { parts: ['2', E(7), ' ÷ 2', E(4), ' × 2', E(0), ' = ', { box: '8' }], why: '2⁷ ÷ 2⁴ = 2³ = 8，再乘 2⁰ = 1，還是 8。', hint: '先用指數相減，再記得 2⁰ = 1。' },
+    ]),
+  }], done, '本章練習 · 第 1 組，共 2 組') }],
+
+  ['final2', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-which', prompt: ['下面哪一個式子是正確的？'],
+    build: choice([
+      [$m('2', E(3), ' × 2', E(4), ' = 2', E(12))],
+      [$m('(2', E(3), ')', E(4), ' = 2', E(12))],
+      [$m('2', E(6), ' ÷ 2', E(2), ' = 2', E(3))],
+      [$m('2', E(3), ' × 3', E(3), ' = 6', E(9))],
+    ], 1, '乘方的乘方，指數相乘：(2³)⁴ = 2³ˣ⁴ = 2¹²。', [
+      '同底數相乘是指數相加：2³ × 2⁴ = 2⁷，不是 2¹²。',
+      null,
+      '同底數相除是指數相減：2⁶ ÷ 2² = 2⁴，不是 2³。',
+      '底數不同不能把指數相加；指數相同可以先乘底數：2³ × 3³ = (2 × 3)³ = 6³。',
+    ]),
+  }], done, '本章練習 · 第 2 組，共 2 組') }],
+
+  ['finish', '完成', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

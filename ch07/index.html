@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2-3 分數的四則運算 — 國中數學七上</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/zh-TW/timings.js"></script>
+<script>
+'use strict';
+// 2-3 分數的四則運算. Beat table and decisions: books/math7a/chapters/ch07.md.
+const CHAPTER = { number: 7, title: '2-3 分數的四則運算', minutes: 8, language: 'zh-TW', next: '../ch08/' };
+Object.assign(TRANSLATIONS.zh, { chapterNumber: '七年級上學期 · 第 2 章', chapterComplete: '2-3 完成' });
+
+const PR = '#c0397a';    // primes (2-1)
+const GC = '#1f6fc5';    // greatest common factor (2-2): used to reduce
+const LC = '#2f8a4a';    // least common multiple (2-2): used for a common denominator
+const SG = COL.task;     // signs: the rule that decides + or −
+const FILL = '#f3d3e2';
+
+/* ---------- chapter drawing helpers ---------- */
+const word = (p, str, x, y, { size = 34, fill = COL.chalk, anchor = 'middle', weight = 500, o = 0 } = {}) =>
+  T(p, str, { x, y, size, fill, anchor, weight, o });
+const box = (p, x, y, w, h, { fill = 'none', stroke = SG, rx = 16, sw = 3 } = {}) => { const g = G(p, { o: 0 }); mk('rect', { x, y, width: w, height: h, rx, fill, stroke, 'stroke-width': sw }, g); return g; };
+const fr = (n, d, neg) => neg ? ['−', F(n, d)] : [F(n, d)];
+// card text: every a/b in the string becomes a stacked fraction (the book never shows a slash fraction)
+const rt = str => str.split(/(−?\d+\/\d+)/).filter(Boolean).map(t => {
+  const f = t.match(/^(−?)(\d+)\/(\d+)$/);
+  return f ? $m(...(f[1] ? ['−'] : []), F(+f[2], +f[3])) : t;
+});
+// one line of maths laid out by hand: items [parts, x, colour?]; operator strings are set in the text font
+const OPS = { '×': '×', '=': '=', '+': '+', '÷': '÷', '<': '<', '>': '>', '–': '−', '↔': '↔' };
+// stacked fractions set their digits at about half the size, so lines are drawn 1.35× larger and spread 1.25× about the centre
+const K = 1.25, SX = x => 800 + (x - 800) * K;
+function eqLine2(p, items, y, size = 60) {
+  const S = size * 1.35;
+  return items.map(([t, x, fill]) => (typeof t === 'string' && OPS[t])
+    ? T(p, OPS[t], { x: SX(x), y: y + 2, size: 54, fill: fill || COL.dim, anchor: 'middle', o: 0 })
+    : M(p, [].concat(t), { x: SX(x), y: y + S * .3, size: S, fill: fill || COL.chalk, o: 0 }));
+}
+const showAll = (els, t0, step = .1) => els.forEach((e, i) => show(e, t0 + i * step, .4));
+const pill = (p, str, x, y, color, { size = 34, w } = {}) => {
+  const g = G(p, { o: 0 }), ww = w || str.length * size + 60;
+  mk('rect', { x: x - ww / 2, y: y - size * .95, width: ww, height: size * 1.6, rx: size * .8, fill: color }, g);
+  T(g, str, { x, y: y + size * .05, size, weight: 700, fill: '#fff', anchor: 'middle' });
+  return g;
+};
+// a number line from v0 to v1 drawn between x0 and x1 at y
+function numLine(p, v0, v1, x0, x1, y, ticks, t0) {
+  const X = v => x0 + (v - v0) / (v1 - v0) * (x1 - x0);
+  draw(path(p, `M${x0 - 30} ${y}H${x1 + 30}`, { stroke: COL.chalk, 'stroke-width': 3 }, { d: 0 }), t0, .7);
+  show(path(p, `M${x1 + 18} ${y - 10}L${x1 + 34} ${y}L${x1 + 18} ${y + 10}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { o: 0 }), t0 + .6, .2);
+  ticks.forEach((v, i) => {
+    show(path(p, `M${X(v)} ${y - 10}V${y + 10}`, { stroke: COL.chalk, 'stroke-width': 2.5 }, { o: 0 }), t0 + .3 + i * .05, .3);
+    show(M(p, [v < 0 ? '−' + (-v) : String(v)], { x: X(v), y: y + 48, size: 32, fill: COL.dim, o: 0 }), t0 + .3 + i * .05, .3);
+  });
+  return X;
+}
+const dotAt = (p, x, y, color, t0) => { const d = mk('circle', { cx: 0, cy: 0, r: 10, fill: color }, G(p)); const g = d.parentNode; put(g, { x, y, o: 0, s: .4 }); pop(g, t0); return g; };
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', '2-3 分數的四則運算', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    word(g, '七年級上學期 · 第 2 章', 800, 250, { size: 30, fill: COL.dim, o: 1 });
+    word(g, '2-3 分數的四則運算', 800, 350, { size: 84, weight: 600, o: 1 });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const L = G(scene);
+    const X = numLine(L, -2, 2, 330, 1270, 600, [-2, -1, 0, 1, 2], m('pos', -.6));
+    [[1, 2], [3, 4], [3, 2]].forEach(([n, d], i) => {
+      dotAt(L, X(n / d), 600, COL.chalk, m('pos', .3 + i * .3));
+      show(M(L, fr(n, d), { x: X(n / d), y: 535, size: 46, o: 0 }), m('pos', .4 + i * .3), .3);
+    });
+    [[1, 2], [3, 4], [3, 2]].forEach(([n, d], i) => {
+      dotAt(L, X(-n / d), 600, SG, m('neg', .4 + i * .3));
+      show(M(L, fr(n, d, true), { x: X(-n / d), y: 535, size: 46, fill: SG, o: 0 }), m('neg', .5 + i * .3), .3);
+    });
+    const q = word(scene, '規則一樣，只要管好正負號', 800, 760, { size: 38, fill: SG, weight: 700 });
+    show(q, m('sub', 1.4), .5);
+    [g, L, q].forEach(e => hide(e, D - .7, .6));
+  }],
+
+  ['equiv', '等值分數', (m, D) => {
+    const p = panel(0);
+    const X0 = 380, W = 720, H = 80;
+    const bar = (y, parts, filled, t0) => {
+      const g = G(p, { o: 0 });
+      for (let i = 0; i < parts; i++) mk('rect', { x: X0 + i * W / parts, y, width: W / parts, height: H, fill: i < filled ? FILL : '#fff', stroke: COL.chalk, 'stroke-width': 2.5 }, g);
+      show(g, t0, .5);
+      return g;
+    };
+    bar(200, 3, 2, m('bar', .5)); show(M(p, fr(2, 3), { x: 1210, y: 268, size: 72, fill: PR, o: 0 }), m('bar', 3.4), .4);
+    bar(340, 6, 4, m('x2')); show(M(p, fr(4, 6), { x: 1210, y: 408, size: 72, fill: PR, o: 0 }), m('x2', 3.4), .4);
+    bar(480, 12, 8, m('x4')); show(M(p, fr(8, 12), { x: 1210, y: 548, size: 72, fill: PR, o: 0 }), m('x4', 1.5), .4);
+    const edge = path(p, `M${X0 + W * 2 / 3} 180V580`, { stroke: PR, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, { d: 0 });
+    draw(edge, m('x2', 1.4), .6);
+    show(word(p, '× 2', 1350, 345, { size: 30, fill: GC, weight: 700 }), m('x2', 1.6), .3);
+    show(word(p, '× 2', 1350, 485, { size: 30, fill: GC, weight: 700 }), m('x4', .6), .3);
+    draw(path(p, 'M1270 280Q1320 310 1270 340', { stroke: GC, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('x2', 1.4), .4);
+    draw(path(p, 'M1270 420Q1320 450 1270 480', { stroke: GC, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('x4', .4), .4);
+    show(pill(p, '擴分：分子分母同乘', 560, 700, GC, { size: 32 }), m('rule', .3), .5);
+    show(pill(p, '約分：分子分母同除', 1060, 700, LC, { size: 32 }), m('rule', 2.5), .5);
+    show(word(p, '分數的大小不變', 800, 800, { size: 32, fill: COL.dim, weight: 600 }), m('rule', 4.5), .5);
+  }],
+
+  ['simplest', '最簡分數', (m, D) => {
+    const p = panel(0);
+    const A = M(p, fr(18, 24), { x: 520, y: 470, size: 150, o: 0 });
+    show(A, m('q'), .5);
+    show(M(p, ['(18, 24) = 6'], { x: 800, y: 175, size: 52, fill: GC, o: 0 }), m('gcd', 1.6), .5);
+    show(word(p, '最大公因數', 1020, 185, { size: 28, fill: GC, weight: 600, anchor: 'start' }), m('gcd', 2), .4);
+    // numerator to numerator above, denominator to denominator below
+    draw(path(p, 'M590 330Q800 240 1010 330', { stroke: GC, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('div', .2), .6);
+    show(word(p, '÷ 6', 800, 250, { size: 34, fill: GC, weight: 700 }), m('div', .5), .3);
+    draw(path(p, 'M590 560Q800 650 1010 560', { stroke: GC, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('div', .5), .6);
+    show(word(p, '÷ 6', 800, 690, { size: 34, fill: GC, weight: 700 }), m('div', .8), .3);
+    const B = M(p, fr(3, 4), { x: 1080, y: 470, size: 150, fill: PR, o: 0 });
+    put(B, { s: .6, o: 0 }); pop(B, m('ans'));
+    show(word(p, '=', 800, 465, { size: 80, fill: COL.dim }), m('ans', .1), .3);
+    show(pill(p, '最簡分數：分子分母互質', 800, 760, PR, { size: 34 }), m('name', .4), .5);
+  }],
+
+  ['negForms', '負分數的寫法', (m, D) => {
+    const p = panel(0);
+    const R = eqLine2(p, [[fr(3, 4, true), 470, SG], ['=', 640], [[F('−3', 4)], 800], ['=', 960], [[F(3, '−4')], 1120]], 280, 76);
+    show(R[0], m('a'), .4); show(R[1], m('b', -.2)); show(R[2], m('b'), .4); show(R[3], m('c', -.2)); show(R[4], m('c'), .4);
+    const X = numLine(p, -1, 1, 400, 1200, 620, [-1, 0, 1], m('same', .2));
+    dotAt(p, X(-.75), 620, SG, m('same', 1.2));
+    show(M(p, fr(3, 4, true), { x: X(-.75), y: 560, size: 50, fill: SG, o: 0 }), m('same', 1.4), .3);
+    show(box(p, SX(470) - 90, 170, 180, 230, { stroke: SG }), m('std', .3), .4);
+    show(word(p, '負號寫在最前面', SX(470), 450, { size: 30, fill: SG, weight: 700 }), m('std', .6), .4);
+  }],
+
+  ['q1', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['−', F(30, 42), ' = ?'], { x: 800, y: 400, size: 90, o: 0 }), .3, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-reduce', prompt: ['把 ', $m('−', F(30, 42)), ' 化成最簡分數。'],
+    build: blanks([{ parts: ['−', F(30, 42), ' = ', { box: '-5/7', lowest: true }],
+      why: rt('(30, 42) = 6，分子分母同除以 6，得到 −5/7。'),
+      hint: '先找 30 和 42 的最大公因數。' }]),
+  }], done) }],
+
+  ['compare', '比較大小', (m, D) => {
+    const p = panel(0);
+    const top = eqLine2(p, [[fr(3, 4), 640], [fr(5, 6), 960]], 230, 72);
+    showAll(top, .3, .3);
+    const qm = word(p, '?', 800, 250, { size: 64, fill: COL.dim, weight: 700 }); show(qm, .8, .3);
+    show(M(p, ['[4, 6] = 12'], { x: 800, y: 395, size: 48, fill: LC, o: 0 }), m('lcm', 1.6), .5);
+    show(word(p, '最小公倍數', 800, 445, { size: 26, fill: LC, weight: 600 }), m('lcm', 2), .4);
+    const L = eqLine2(p, [[fr(3, 4), 420], ['=', 520], [fr(9, 12), 620, LC]], 590, 64);
+    const R = eqLine2(p, [[fr(5, 6), 980], ['=', 1080], [fr(10, 12), 1190, LC]], 590, 64);
+    showAll(L, m('conv', .2), .3); showAll(R, m('conv', 2.8), .3);
+    const lt = word(p, '<', 800, 612, { size: 72, fill: SG, weight: 700 }); pop(lt, m('ans', 1.2)); put(lt, { s: .5, o: 0 });
+    hide(qm, m('ans', 3.5), .2);
+    const lt2 = word(p, '<', 800, 252, { size: 64, fill: SG, weight: 700 }); show(lt2, m('ans', 3.6), .3);
+  }],
+
+  ['compareNeg', '負分數比大小', (m, D) => {
+    const p = panel(0);
+    const X = numLine(p, -1, 0, 380, 1220, 420, [-1, 0], m('line', -.3));
+    for (let k = 1; k < 12; k++) show(path(p, `M${X(-k / 12)} 413V427`, { stroke: COL.faint, 'stroke-width': 2 }, { o: 0 }), m('line', .2), .3);
+    dotAt(p, X(-9 / 12), 420, GC, m('line', 1.2));
+    show(M(p, fr(3, 4, true), { x: X(-9 / 12) + 18, y: 350, size: 50, fill: GC, o: 0 }), m('line', 1.3), .3);
+    dotAt(p, X(-10 / 12), 420, SG, m('line', 2.4));
+    show(M(p, fr(5, 6, true), { x: X(-10 / 12) - 18, y: 350, size: 50, fill: SG, o: 0 }), m('line', 2.5), .3);
+    draw(path(p, `M${X(-10 / 12)} 470V490M${X(0)} 470V490M${X(-10 / 12)} 480H${X(0)}`, { stroke: SG, 'stroke-width': 2.5 }, { d: 0 }), m('left', 1.2), .6);
+    show(word(p, '離 0 比較遠', (X(-10 / 12) + X(0)) / 2, 525, { size: 26, fill: SG, weight: 600 }), m('left', 1.6), .3);
+    const r = eqLine2(p, [[fr(5, 6, true), 690, SG], ['<', 800, SG], [fr(3, 4, true), 910, GC]], 650, 64);
+    showAll(r, m('left', 3), .2);
+    show(pill(p, '負數：絕對值大的反而小', 800, 790, SG, { size: 32 }), m('rule', .6), .5);
+  }],
+
+  ['q2', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['−', F(2, 3), '   ?   −', F(3, 5)], { x: 800, y: 400, size: 86, o: 0 }), .3, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-cmpneg', prompt: ['哪一個比較大？'],
+    build: choice([[$m('−', F(2, 3))], [$m('−', F(3, 5))], ['一樣大']], 1,
+      rt('2/3 = 10/15、3/5 = 9/15，所以 |−2/3| 比較大；負數絕對值大的反而小，−3/5 比較大。'),
+      [rt('通分後 2/3 = 10/15 比 3/5 = 9/15 大，但加上負號後，絕對值大的反而比較小。'), null, rt('通分後分子不同：10/15 和 9/15 不一樣大。')]),
+  }], done) }],
+
+  ['addSame', '同分母加減', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[fr(7, 9, true), 600], ['+', 720], [fr(4, 9), 830]], 240, 68);
+    showAll(A, m('eq', .2), .5);
+    const B = eqLine2(p, [['=', 520], [[F('(−7) + 4', 9)], 720]], 430, 68);
+    showAll(B, m('num', .3), .4);
+    show(word(p, '分母不變', 960, 470, { size: 28, fill: SG, weight: 600, anchor: 'start' }), m('num', .5), .3);
+    show(word(p, '分子相加', 960, 410, { size: 28, fill: SG, weight: 600, anchor: 'start' }), m('num', 1.6), .3);
+    const C = eqLine2(p, [['=', 520], [[F('−3', 9)], 640], ['=', 760], [fr(1, 3, true), 880, SG]], 620, 68);
+    showAll(C.slice(0, 2), m('ans', .2), .3); showAll(C.slice(2), m('ans', 2.2), .3);
+    show(word(p, '約分', 760, 700, { size: 26, fill: GC, weight: 600 }), m('ans', 2.2), .3);
+  }],
+
+  ['addDiff', '異分母加減', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[fr(5, 6, true), 600], ['+', 720], [fr(3, 8), 830]], 240, 68);
+    showAll(A, m('eq', .2), .5);
+    show(M(p, ['[6, 8] = 24'], { x: 1250, y: 255, size: 46, fill: LC, o: 0 }), m('lcm', .3), .5);
+    show(word(p, '通分', 1250, 175, { size: 28, fill: LC, weight: 600 }), m('lcm', .3), .4);
+    const B = eqLine2(p, [['=', 520], [fr(20, 24, true), 650, LC], ['+', 790], [fr(9, 24), 900, LC]], 430, 68);
+    showAll(B, m('conv', .3), .5);
+    const C = eqLine2(p, [['=', 520], [fr(11, 24, true), 650, SG]], 620, 68);
+    showAll(C, m('ans', .3), .3);
+    show(word(p, '(−20) + 9 = −11', 900, 630, { size: 30, fill: COL.dim, anchor: 'start' }), m('ans', .8), .4);
+  }],
+
+  ['sub', '減法變加法', (m, D) => {
+    const p = panel(0);
+    show(pill(p, '減去一個數＝加上它的相反數', 800, 160, SG, { size: 32 }), m('eq', .2), .5);
+    const A = eqLine2(p, [[fr(2, 3), 560], ['–', 680], [['(', '−', F(1, 4), ')'], 820]], 330, 64);
+    showAll(A, .3, .2);
+    const B = eqLine2(p, [['=', 450], [fr(2, 3), 560], ['+', 680, SG], [fr(1, 4), 800, SG]], 500, 64);
+    showAll(B, m('flip', 2.4), .4);
+    draw(path(p, `M${SX(680)} 370Q${SX(680) + 12} 425 ${SX(680)} 475`, { stroke: SG, 'stroke-width': 3, fill: 'none' }, { d: 0 }), m('flip', 2.4), .4);
+    const C = eqLine2(p, [['=', 450], [fr(8, 12), 560, LC], ['+', 680], [fr(3, 12), 800, LC], ['=', 920], [fr(11, 12), 1040, PR]], 670, 64);
+    showAll(C.slice(0, 4), m('ans', .6), .5); showAll(C.slice(4), m('ans', 4.6), .3);
+  }],
+
+  ['q3', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['(−', F(1, 2), ') + ', F(2, 3), ' = ?'], { x: 800, y: 400, size: 86, o: 0 }), .3, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-add', prompt: ['計算，答案化成最簡分數。'],
+    build: blanks([{ parts: ['(−', F(1, 2), ') + ', F(2, 3), ' = ', { box: '1/6' }],
+      why: rt('[2, 3] = 6：−3/6 + 4/6 = 1/6。'), hint: '先通分：分母 2 和 3 的最小公倍數是多少？' }]),
+  }], done) }],
+
+  ['multiply', '分數乘法', (m, D) => {
+    const p = panel(0);
+    const A = eqLine2(p, [[['(', '−', F(4, 9), ')'], 640], ['×', 790], [fr(15, 8), 900]], 220, 66);
+    showAll(A, m('eq', .2), .5);
+    show(pill(p, '一負一正 → 負', 1260, 230, SG, { size: 30 }), m('sign', 1.2), .4);
+    // the product over one bar, laid out by hand so single numbers can be struck out
+    const Y = 470, S = 64, x0 = 640;
+    const eq = word(p, '=', 470, Y + 20, { size: 56, fill: COL.dim }); show(eq, m('sign', 2.6), .3);
+    const minus = word(p, '−', 545, Y + 20, { size: 60, fill: SG, weight: 600 }); show(minus, m('sign', 2.8), .3);
+    const n4 = nmT(p, '4', x0, Y - 50, S), nx = word(p, '×', x0 + 75, Y - 40, { size: 50, fill: COL.dim }), n15 = nmT(p, '15', x0 + 160, Y - 50, S);
+    const d9 = nmT(p, '9', x0, Y + 75, S), dx = word(p, '×', x0 + 75, Y + 85, { size: 50, fill: COL.dim }), d8 = nmT(p, '8', x0 + 160, Y + 75, S);
+    const barL = path(p, `M${x0 - 50} ${Y + 8}H${x0 + 220}`, { stroke: COL.chalk, 'stroke-width': 3.5 }, { d: 0 });
+    [n4, nx, n15, d9, dx, d8].forEach((e, i) => show(e, m('cancel', -.6 + i * .05), .3)); draw(barL, m('cancel', -.6), .4);
+    const strike = (x, y, t0, color) => draw(path(p, `M${x - 26} ${y + 22}L${x + 26} ${y - 30}`, { stroke: color, 'stroke-width': 4 }, { d: 0 }), t0, .3);
+    const small = (str, x, y, t0, color) => show(word(p, str, x, y, { size: 34, fill: color, weight: 700 }), t0, .3);
+    strike(x0, Y - 60, m('cancel', .3), GC); strike(x0 + 160, Y + 65, m('cancel', .5), GC);
+    small('1', x0 + 30, Y - 105, m('cancel', .6), GC); small('2', x0 + 190, Y + 145, m('cancel', .8), GC);
+    strike(x0 + 160, Y - 60, m('cancel', 2.4), LC); strike(x0, Y + 65, m('cancel', 2.6), LC);
+    small('5', x0 + 195, Y - 105, m('cancel', 2.7), LC); small('3', x0 + 30, Y + 145, m('cancel', 2.9), LC);
+    const C = eqLine2(p, [['=', 970], [fr(5, 6, true), 1100, SG]], Y + 10, 72);
+    showAll(C, m('ans', 2.4), .3);
+  }],
+
+  ['reciprocal', '倒數', (m, D) => {
+    const p = panel(0);
+    show(pill(p, '倒數：分子分母對調', 800, 160, GC, { size: 32 }), m('def', .2), .5);
+    const row = (a, b, y, t0) => {
+      const R = eqLine2(p, [[a, 560], ['↔', 800, GC], [b, 1040]], y, 64);
+      showAll(R, t0, .5);
+      return R;
+    };
+    row(fr(3, 5), fr(5, 3), 320, m('ex1', .3));
+    row(['−2'], fr(1, 2, true), 480, m('ex2', .3));
+    const P1 = eqLine2(p, [[fr(3, 5), 560], ['×', 660], [fr(5, 3), 760], ['=', 860], ['1', 950, GC]], 640, 58);
+    showAll(P1, m('one', .3), .15);
+    const z = word(p, '0 沒有倒數 ✗', 1150, 655, { size: 34, fill: COL.bad, weight: 700, anchor: 'start' });
+    show(z, m('zero', .3), .4);
+  }],
+
+  ['divide', '分數除法', (m, D) => {
+    const p = panel(0);
+    show(pill(p, '除以一個數＝乘以它的倒數', 800, 160, GC, { size: 32 }), m('rule', .2), .5);
+    const A = eqLine2(p, [[['(', '−', F(5, 6), ')'], 560], ['÷', 720], [['(', '−', F(10, 9), ')'], 880]], 330, 64);
+    showAll(A, m('eq', .3), .6);
+    const B = eqLine2(p, [['=', 430], [['(', '−', F(5, 6), ')'], 560], ['×', 720, GC], [['(', '−', F(9, 10), ')'], 880, GC]], 500, 64);
+    showAll(B, m('flip', .3), .3);
+    show(pill(p, '負 × 負 → 正', 1250, 510, SG, { size: 30 }), m('sign', .3), .4);
+    const C = eqLine2(p, [['=', 430], [fr(3, 4), 560, PR]], 670, 64);
+    showAll(C, m('ans', .8), .3);
+    show(M(p, ['= ', F('5 × 9', '6 × 10'), ' = ', F(45, 60)], { x: 640, y: 700, size: 60, fill: COL.dim, anchor: 'start', o: 0 }), m('ans', 1.2), .4);
+  }],
+
+  ['q4', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['(−', F(3, 4), ') ÷ ', F(9, 8), ' = ?'], { x: 800, y: 400, size: 86, o: 0 }), .3, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-div', prompt: ['計算，答案化成最簡分數。'],
+    build: blanks([{ parts: ['(−', F(3, 4), ') ÷ ', F(9, 8), ' = ', { box: '-2/3' }],
+      why: rt('÷ 9/8 = × 8/9：(−3/4) × 8/9 = −24/36 = −2/3。'), hint: rt('除以 9/8，等於乘以它的倒數 8/9。') }]),
+  }], done) }],
+
+  ['mixed', '四則混合', (m, D) => {
+    const p = panel(0);
+    const NEG = ['(', '−', F(3, 4), ')'];
+    const A = eqLine2(p, [[NEG, 330], ['×', 450], [fr(5, 7), 540], ['+', 650], [NEG, 770], ['×', 890], [fr(2, 7), 980]], 230, 58);
+    showAll(A, m('eq', .3), .45);
+    [330, 770].forEach((x, k) => show(box(p, SX(x) - 100, 150, 200, 170, { stroke: SG }), m('common', .6 + k * .3), .3));
+    const B = eqLine2(p, [['=', 250], [NEG, 370, SG], ['×', 490], [['(', F(5, 7), ' + ', F(2, 7), ')'], 680]], 420, 58);
+    showAll(B, m('dist', .3), .3);
+    show(word(p, '分配律', 1150, 435, { size: 30, fill: SG, weight: 700, anchor: 'start' }), m('dist', .6), .3);
+    const C = eqLine2(p, [['=', 250], [NEG, 370, SG], ['×', 490], ['1', 570, GC]], 600, 58);
+    showAll(C, m('sum', 2.4), .3);
+    const Dd = eqLine2(p, [['=', 250], [fr(3, 4, true), 370, PR]], 760, 58);
+    showAll(Dd, m('ans', .5), .3);
+  }],
+
+  ['wrap', '重點整理', (m) => {
+    const p = panel(0);
+    const items = [
+      ['約分用最大公因數，通分用最小公倍數', 'w1', [F(18, 24), ' = ', F(3, 4), '      [6, 8] = 24'], GC],
+      ['加減：先通分；減去一個數＝加上它的相反數', 'w2', [F(2, 3), ' − (−', F(1, 4), ') = ', F(2, 3), ' + ', F(1, 4)], LC],
+      ['乘除：先定正負號；除以一個數＝乘以它的倒數', 'w3', '能約分就先約分', SG],
+    ];
+    items.forEach(([str, mark, ex, color], i) => {
+      const g = G(p, { x: -16, y: 190 + i * 210, o: 0 });
+      mk('circle', { cx: 180, cy: -12, r: 26, fill: color }, g);
+      T(g, String(i + 1), { x: 180, y: -1, size: 30, fill: '#fff', weight: 700, anchor: 'middle' });
+      T(g, str, { x: 240, size: 36, weight: 600 });
+      if (typeof ex === 'string') T(g, ex, { x: 240, y: 58, size: 32, fill: color, weight: 600 });
+      else M(g, ex, { x: 240, y: 82, size: 52, fill: color, anchor: 'start' });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+
+  ['final1', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-calc', prompt: ['計算下面兩題，答案化成最簡分數。'],
+    build: blanks([
+      { parts: [F(5, 6), ' − ', F(3, 4), ' = ', { box: '1/12' }], why: rt('[6, 4] = 12：10/12 − 9/12 = 1/12。'), hint: '先通分。' },
+      { parts: ['(−', F(2, 3), ') × (−', F(9, 4), ') = ', { box: '3/2' }], why: rt('負 × 負 → 正；先約分：(2/3) × (9/4) = 3/2。'), hint: '先定正負號，再約分。' },
+    ]),
+  }], done, '本章練習 · 第 1 組，共 2 組') }],
+
+  ['final2', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-order', prompt: ['計算 ', $m('(−', F(1, 2), ') ÷ ', F(1, 3), ' × 3'), '。乘除混合時由左往右算。'],
+    build: choice([[$m('−', F(1, 2))], [$m('−', F(9, 2))], [$m('−', F(1, 18))], [$m(F(9, 2))]], 1,
+      rt('由左往右：(−1/2) ÷ 1/3 = (−1/2) × 3 = −3/2，再 × 3 = −9/2。'),
+      [rt('先算了 1/3 × 3 = 1。乘除混合要由左往右算，不能先算後面。'), null, rt('把「÷ 1/3」當成「× 1/3」了：除以 1/3 要乘以倒數 3。'), '數值對了，但只有一個負數，答案應該是負的。']),
+  }], done, '本章練習 · 第 2 組，共 2 組') }],
+
+  ['finish', '完成', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+function nmT(p, str, x, y, size) { return M(p, [str], { x, y: y + size * .34, size, o: 0 }); }
+
+boot();
+</script>
+</body>
+</html>

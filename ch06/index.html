@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2-2 最大公因數與最小公倍數 — 國中數學七上</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/zh-TW/timings.js"></script>
+<script>
+'use strict';
+// 2-2 最大公因數與最小公倍數. Beat table and decisions: books/math7a/chapters/ch06.md.
+const CHAPTER = { number: 6, title: '2-2 最大公因數與最小公倍數', minutes: 7, language: 'zh-TW', next: '../ch07/' };
+Object.assign(TRANSLATIONS.zh, { chapterNumber: '七年級上學期 · 第 2 章', chapterComplete: '2-2 完成' });
+
+const PR = '#c0397a';    // prime factors (as in 2-1)
+const GC = '#1f6fc5';    // greatest common factor, the whole chapter
+const LC = '#2f8a4a';    // least common multiple, the whole chapter
+const GC_BG = '#dbe8f7', LC_BG = '#dcefe1';
+
+/* ---------- chapter drawing helpers ---------- */
+const word = (p, str, x, y, { size = 34, fill = COL.chalk, anchor = 'middle', weight = 500, o = 0 } = {}) =>
+  T(p, str, { x, y, size, fill, anchor, weight, o });
+const nm = (p, v, x, y, { size = 56, fill = COL.chalk, o = 0, s = 1 } = {}) => M(p, [String(v)], { x, y: y + size * .34, size, fill, o, s });
+const ring = (p, x, y, r = 40, stroke = PR) => { const g = G(p, { o: 0 }); mk('circle', { cx: x, cy: y, r, fill: 'none', stroke, 'stroke-width': 3.5 }, g); return g; };
+const box = (p, x, y, w, h, { fill = 'none', stroke = COL.task, rx = 16, sw = 3 } = {}) => { const g = G(p, { o: 0 }); mk('rect', { x, y, width: w, height: h, rx, fill, stroke, 'stroke-width': sw }, g); return g; };
+// one product line laid out by hand: items [text or parts, x, colour?]; × and = in the text font
+function prodLine(p, items, y, size = 58) {
+  return items.map(([t, x, fill]) => (t === '×' || t === '=' || t === ',')
+    ? T(p, t, { x, y: y - 4, size: size * .8, fill: COL.dim, anchor: 'middle', o: 0 })
+    : M(p, [].concat(t), { x, y, size, fill: fill || COL.chalk, o: 0 }));
+}
+const showAll = (els, t0, step = .08) => els.forEach((e, i) => show(e, t0 + i * step, .4));
+// two rows of chips aligned by value: the values of each row get a column of their own
+function twoRows(p, label1, vals1, label2, vals2, { x0 = 330, dx = 115, y1 = 280, y2 = 440, size = 40 } = {}) {
+  const cols = [...new Set([...vals1, ...vals2])].sort((a, b) => a - b), X = v => x0 + cols.indexOf(v) * dx;
+  const L1 = word(p, label1, x0 - 80, y1 + 12, { size: 30, fill: COL.dim, anchor: 'end', weight: 600 });
+  const L2 = word(p, label2, x0 - 80, y2 + 12, { size: 30, fill: COL.dim, anchor: 'end', weight: 600 });
+  const r1 = {}, r2 = {};
+  vals1.forEach(v => { r1[v] = chip(p, [String(v)], COL.faint, { x: X(v), y: y1, o: 0, s: .5, size }); });
+  vals2.forEach(v => { r2[v] = chip(p, [String(v)], COL.faint, { x: X(v), y: y2, o: 0, s: .5, size }); });
+  return { X, r1, r2, L1, L2, y1, y2, size };
+}
+// the chips of `vals` in both rows, recoloured: a coloured copy fades in over each
+function mark2(p, R, vals, color, t0) {
+  vals.forEach((v, i) => {
+    const link = path(p, `M${R.X(v)} ${R.y1 + 32}V${R.y2 - 32}`, { stroke: color, 'stroke-width': 3 }, { d: 0 });
+    draw(link, t0 + i * .2, .35);
+    [R.y1, R.y2].forEach(y => show(chip(p, [String(v)], color, { x: R.X(v), y, o: 0, size: R.size }), t0 + i * .2, .3));
+  });
+}
+// two-number short division: rows [divisor, a, b]; the last row has no divisor
+function shortDiv2(p, rows, x0, y0, dy, size = 52) {
+  return rows.map(([d, a, b], k) => {
+    const y = y0 + k * dy, r = {};
+    r.a = nm(p, a, x0 + 120, y, { size }); r.b = nm(p, b, x0 + 260, y, { size });
+    if (d) {
+      r.d = nm(p, d, x0, y, { size, fill: PR, s: .6 });
+      r.line = path(p, `M${x0 + 45} ${y - size * .55}V${y + size * .5}H${x0 + 340}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 });
+    }
+    return r;
+  });
+}
+const DIV = [[2, 84, 126], [3, 42, 63], [7, 14, 21], [null, 2, 3]];
+// 84 and 126 in standard form, the primes in columns
+const STD_X = { lab: 520, eq: 600, p2: 700, x1: 790, p3: 880, x2: 970, p7: 1060 };
+function stdRows(p, t0) {
+  const A = prodLine(p, [['84', STD_X.lab], ['=', STD_X.eq], [['2', E(2)], STD_X.p2, PR], ['×', STD_X.x1], ['3', STD_X.p3, PR], ['×', STD_X.x2], ['7', STD_X.p7, PR]], 280, 60);
+  const B = prodLine(p, [['126', STD_X.lab], ['=', STD_X.eq], ['2', STD_X.p2, PR], ['×', STD_X.x1], [['3', E(2)], STD_X.p3, PR], ['×', STD_X.x2], ['7', STD_X.p7, PR]], 400, 60);
+  showAll(A, t0, .05); showAll(B, t0 + .4, .05);
+  return { A, B };
+}
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', '2-2 最大公因數與最小公倍數', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    word(g, '七年級上學期 · 第 2 章', 800, 250, { size: 30, fill: COL.dim, o: 1 });
+    word(g, '2-2 最大公因數與最小公倍數', 800, 350, { size: 76, weight: 600, o: 1 });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    const card = (x, title, sym, sub, color, bg, t0) => {
+      const c = G(scene, { o: 0, y: 30 });
+      mk('rect', { x: x - 250, y: 450, width: 500, height: 230, rx: 24, fill: bg, stroke: color, 'stroke-width': 3 }, c);
+      T(c, title, { x, y: 520, size: 44, weight: 700, fill: color, anchor: 'middle' });
+      M(c, sym, { x, y: 600, size: 52, fill: color });
+      T(c, sub, { x, y: 655, size: 28, fill: COL.dim, anchor: 'middle' });
+      tw(c, { o: 1, y: 0 }, t0, .6, out);
+      return c;
+    };
+    const a = card(530, '最大公因數', ['(a, b)'], '鋪地磚、分禮盒', GC, GC_BG, m('gcd'));
+    const b = card(1070, '最小公倍數', ['[a, b]'], '排班表、等公車', LC, LC_BG, m('lcm'));
+    const q = word(scene, '用質因數分解快速找出來', 800, 770, { size: 36, fill: COL.task, weight: 600 });
+    show(q, m('sub', .5), .5);
+    [g, a, b, q].forEach(e => hide(e, D - .7, .6));
+  }],
+
+  ['tiles', '鋪地磚', (m, D) => {
+    const p = panel(0);
+    const U = 20, X0 = 260, Y0 = 210, W = 24 * U, H = 18 * U;   // a 24 × 18 floor
+    const floor = box(p, X0, Y0, W, H, { fill: '#fff', stroke: COL.chalk, rx: 2, sw: 3 });
+    show(floor, .3, .4);
+    show(word(p, '24', X0 + W / 2, Y0 + H + 50, { size: 36, weight: 600 }), m('rect', .6));
+    show(word(p, '18', X0 - 40, Y0 + H / 2 + 12, { size: 36, weight: 600 }), m('rect', .9));
+    const tiling = (s, color, bad) => {
+      const g = G(p, { o: 0 });
+      for (let y = 0; y + s <= 18; y += s) for (let x = 0; x + s <= 24; x += s)
+        mk('rect', { x: X0 + x * U + 2, y: Y0 + y * U + 2, width: s * U - 4, height: s * U - 4, rx: 3, fill: ((x + y) / s) % 2 ? color : '#fff', stroke: color, 'stroke-width': 2, opacity: .9 }, g);
+      if (bad) mk('rect', { x: X0, y: Y0 + 16 * U, width: W, height: 2 * U, fill: '#f7d6d2', stroke: COL.bad, 'stroke-width': 2.5 }, g);
+      return g;
+    };
+    const t2 = tiling(2, '#ece8e0'), t4 = tiling(4, '#f3e2c7', true), t6 = tiling(6, GC_BG);
+    const verdict = (str, color, t0, t1) => { const v = word(p, str, 1000, 330, { size: 40, weight: 700, fill: color, anchor: 'start' }); show(v, t0, .3); if (t1) hide(v, t1, .3); return v; };
+    show(t2, m('two'), .4); verdict('邊長 2：可以 ✓', COL.good, m('two', .2), m('four'));
+    hide(t2, m('four'), .3); show(t4, m('four'), .4); verdict('邊長 4：不行 ✗', COL.bad, m('four', .2), m('six'));
+    const note4 = word(p, '18 不能被 4 整除', 1000, 395, { size: 30, fill: COL.bad }); show(note4, m('four', 1.2), .3); hide(note4, m('six'), .3);
+    hide(t4, m('six'), .3); show(t6, m('six'), .4); verdict('邊長 6：可以，最大 ✓', GC, m('six', .2));
+    const why = G(p, { o: 0 });
+    T(why, '地磚邊長＝', { x: 1000, y: 480, size: 34, weight: 600 });
+    T(why, '24 和 18 的公因數', { x: 1000, y: 530, size: 34, weight: 700, fill: GC });
+    tw(why, { o: 1 }, m('why'), .5);
+  }],
+
+  ['gcdList', '最大公因數', (m, D) => {
+    const p = panel(0);
+    const R = twoRows(p, '24 的因數', [1, 2, 3, 4, 6, 8, 12, 24], '18 的因數', [1, 2, 3, 6, 9, 18]);
+    show(R.L1, m('a', -.2)); show(R.L2, m('b', -.2));
+    [1, 2, 3, 4, 6, 8, 12, 24].forEach((v, i) => pop(R.r1[v], m('a', 1.3 + i * .66)));
+    [1, 2, 3, 6, 9, 18].forEach((v, i) => pop(R.r2[v], m('b', 1.3 + i * .7)));
+    mark2(p, R, [1, 2, 3, 6], GC, m('common'));
+    show(word(p, '公因數：1、2、3、6', 800, 545, { size: 30, fill: GC, weight: 600 }), m('common', 1.2), .4);
+    show(box(p, R.X(6) - 50, R.y1 - 45, 100, R.y2 - R.y1 + 90, { stroke: GC, rx: 50, sw: 4 }), m('max'), .4);
+    const note = M(p, ['(24, 18) = 6'], { x: 800, y: 660, size: 68, fill: GC, o: 0 });
+    show(note, m('note'), .5);
+    show(word(p, '最大公因數', 800, 740, { size: 32, fill: COL.dim, weight: 600 }), m('note', .3), .5);
+  }],
+
+  ['coprime', '互質', (m, D) => {
+    const p = panel(0);
+    const R = twoRows(p, '8 的因數', [1, 2, 4, 8], '15 的因數', [1, 3, 5, 15], { x0: 480, dx: 130 });
+    show(R.L1, m('pair')); show(R.L2, m('pair', .2));
+    [1, 2, 4, 8].forEach((v, i) => pop(R.r1[v], m('pair', .3 + i * .12)));
+    [1, 3, 5, 15].forEach((v, i) => pop(R.r2[v], m('pair', .9 + i * .12)));
+    mark2(p, R, [1], GC, m('only'));
+    const n1 = M(p, ['(8, 15) = 1'], { x: 800, y: 640, size: 64, fill: GC, o: 0 });
+    show(n1, m('only', 1.4), .5);
+    const tag = G(p, { o: 0 });
+    mk('rect', { x: 620, y: 690, width: 360, height: 76, rx: 38, fill: GC }, tag);
+    T(tag, '8 和 15 互質', { x: 800, y: 741, size: 38, weight: 700, fill: '#fff', anchor: 'middle' });
+    put(tag, { s: .6, o: 0 }); pop(tag, m('name', 1.6));
+  }],
+
+  ['q1', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['(20, 30) = ?'], { x: 800, y: 380, size: 90, fill: GC, o: 0 }), .3, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-gcd2030', prompt: ['求 20 和 30 的最大公因數。'],
+    build: blanks([{ parts: ['(20, 30) = ', { box: '10' }],
+      why: '20 的因數：1、2、4、5、10、20；30 的因數：1、2、3、5、6、10、15、30。公因數中最大的是 10。',
+      hint: '先列出 20 的因數，再看哪些也是 30 的因數。' }]),
+  }], done) }],
+
+  ['gcdStd', '用標準分解式求最大公因數', (m, D) => {
+    const p = panel(0);
+    show(word(p, '標準分解式', 160, 150, { size: 32, weight: 600, fill: COL.dim, anchor: 'start' }), .2);
+    stdRows(p, m('std', .3));
+    // the common primes: a column each
+    [STD_X.p2, STD_X.p3, STD_X.p7].forEach((x, i) => {
+      const c = box(p, x - 55, 205, 110, 230, { fill: GC_BG, stroke: GC, sw: 2 });
+      p.insertBefore(c, p.firstChild);
+      show(c, m('common', .9 + i * .45), .4);
+    });
+    // the smaller power of each: 2 from 126, 3 from 84, 7
+    const picks = [[STD_X.p2, 400], [STD_X.p3, 280], [STD_X.p7, 280]];
+    picks.forEach(([x, y], i) => show(ring(p, x + 4, y - 20, 42, GC), m('low', 2.6 + i * 1.3), .4));
+    const G1 = prodLine(p, [[['(84, 126)'], 480], ['=', 600], ['2', STD_X.p2, GC], ['×', STD_X.x1], ['3', STD_X.p3, GC], ['×', STD_X.x2], ['7', STD_X.p7, GC]], 570, 60);
+    show(G1[0], m('low', .3)); show(G1[1], m('low', .3));
+    [2, 4, 6].forEach((i, k) => show(G1[i], m('low', 2.8 + k * 1.3), .4));
+    [3, 5].forEach((i, k) => show(G1[i], m('low', 3.6 + k * 1.3), .3));
+    const ans = prodLine(p, [['=', 1150], ['42', 1240, GC]], 570, 60);
+    showAll(ans, m('ans', .3));
+    show(box(p, 335, 500, 985, 100, { stroke: GC }), m('ans', 1), .5);
+  }],
+
+  ['gcdDiv', '用短除法求最大公因數', (m, D) => {
+    const p = panel(0);
+    show(word(p, '短除法', 160, 150, { size: 32, weight: 600, fill: COL.dim, anchor: 'start' }), .2);
+    const R = shortDiv2(p, DIV, 430, 230, 115);
+    show(R[0].a, .3, .4); show(R[0].b, .4, .4);
+    const GOT = [3.3, 2.2, 2.2];   // when "得 …" is said after each mark
+    ['d1', 'd2', 'd3'].forEach((k, i) => {
+      pop(R[i].d, m(k, .2)); draw(R[i].line, m(k, .4), .5);
+      show(R[i + 1].a, m(k, GOT[i]), .4); show(R[i + 1].b, m(k, GOT[i] + .6), .4);
+    });
+    show(word(p, '互質，停', 920, 587, { size: 32, fill: COL.task, weight: 600, anchor: 'start' }), m('stop', .4), .4);
+    show(box(p, 505, 535, 330, 100, { stroke: COL.task, rx: 50 }), m('stop'), .4);
+    // the left column multiplies to the gcf
+    show(box(p, 385, 180, 90, 330, { fill: 'none', stroke: GC, rx: 45, sw: 3.5 }), m('ans'), .4);
+    const A = prodLine(p, [['2', 1070, PR], ['×', 1135], ['3', 1200, PR], ['×', 1265], ['7', 1330, PR]], 360, 60);
+    showAll(A, m('ans', 2.6), .3);
+    const B = prodLine(p, [['=', 1070], ['42', 1160, GC]], 470, 64);
+    showAll(B, m('ans', 4.6));
+    show(word(p, '最大公因數', 1250, 475, { size: 30, fill: GC, weight: 600, anchor: 'start' }), m('ans', 5), .4);
+  }],
+
+  ['q2', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['(60, 90) = ?'], { x: 800, y: 380, size: 90, fill: GC, o: 0 }), .3, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-gcd6090', prompt: ['求 60 和 90 的最大公因數。用標準分解式或短除法都可以。'],
+    build: blanks([{ parts: ['(60, 90) = ', { box: '30' }],
+      why: '60 = 2² × 3 × 5，90 = 2 × 3² × 5；共同的質因數取次方小的：2 × 3 × 5 = 30。',
+      hint: '60 和 90 都能被 10 整除，再看 6 和 9 還有沒有公因數。' }]),
+  }], done) }],
+
+  ['lcmHook', '拼正方形', (m, D) => {
+    const p = panel(0);
+    const U = 18, X0 = 320, Y0 = 190;          // cards 8 × 6, a 24 × 24 square
+    const cardAt = (i, j, t0) => {
+      const g = G(p, { o: 0, s: .7 });
+      put(g, { x: X0 + i * 8 * U + 4 * U, y: Y0 + j * 6 * U + 3 * U });
+      mk('rect', { x: -4 * U + 2, y: -3 * U + 2, width: 8 * U - 4, height: 6 * U - 4, rx: 6, fill: (i + j) % 2 ? LC_BG : '#fff', stroke: LC, 'stroke-width': 2.5 }, g);
+      pop(g, t0);
+      return g;
+    };
+    cardAt(0, 0, m('card', .8));
+    show(word(p, '8', X0 + 4 * U, Y0 - 16, { size: 28, fill: LC, weight: 600 }), m('card', 1.2));
+    show(word(p, '6', X0 - 24, Y0 + 3 * U + 10, { size: 28, fill: LC, weight: 600 }), m('card', 1.4));
+    [1, 2].forEach((i, k) => cardAt(i, 0, m('side', .6 + k * .5)));
+    [16, 24].forEach((v, k) => show(word(p, String(v), X0 + (k + 2) * 8 * U - 10, Y0 - 16, { size: 28, fill: LC, weight: 600, anchor: 'end' }), m('side', .9 + k * .5)));
+    [1, 2, 3].forEach((j, k) => cardAt(0, j, m('side2', .6 + k * .45)));
+    [12, 18, 24].forEach((v, k) => show(word(p, String(v), X0 - 24, Y0 + (k + 2) * 6 * U - 8, { size: 28, fill: LC, weight: 600, anchor: 'end' }), m('side2', .9 + k * .45)));
+    let k = 0;
+    for (let j = 1; j < 4; j++) for (let i = 1; i < 3; i++) cardAt(i, j, m('sq', .2 + (k++) * .1));
+    show(box(p, X0 - 4, Y0 - 4, 24 * U + 8, 24 * U + 8, { stroke: LC, rx: 4, sw: 4 }), m('sq', 1), .4);
+    const res = G(p, { o: 0 });
+    T(res, '最小的正方形', { x: 900, y: 330, size: 34, fill: COL.dim, weight: 600 });
+    M(res, ['24 × 24'], { x: 900, y: 420, size: 72, fill: LC, anchor: 'start' });
+    T(res, '用 12 張卡片', { x: 900, y: 500, size: 34, fill: COL.dim, weight: 600 });
+    T(res, '邊長＝8 和 6 的公倍數', { x: 900, y: 600, size: 34, weight: 700, fill: LC });
+    tw(res, { o: 1 }, m('sq', 1.2), .5);
+  }],
+
+  ['lcmList', '最小公倍數', (m, D) => {
+    const p = panel(0);
+    const R = twoRows(p, '8 的倍數', [8, 16, 24, 32, 40, 48], '6 的倍數', [6, 12, 18, 24, 30, 36, 42, 48], { x0: 300, dx: 100, size: 38 });
+    show(R.L1, m('a', -.2)); show(R.L2, m('b', -.2));
+    [8, 16, 24, 32, 40, 48].forEach((v, i) => pop(R.r1[v], m('a', 1.3 + i * .8)));
+    [6, 12, 18, 24, 30, 36, 42, 48].forEach((v, i) => pop(R.r2[v], m('b', 1.3 + i * .88)));
+    [R.y1, R.y2].forEach((y, i) => show(word(p, '⋯', 1440, y + 12, { size: 40, fill: COL.dim }), m(i ? 'b' : 'a', 4)));
+    mark2(p, R, [24, 48], LC, m('common'));
+    show(word(p, '公倍數：24、48、⋯', 800, 545, { size: 30, fill: LC, weight: 600 }), m('common', 1), .4);
+    show(box(p, R.X(24) - 48, R.y1 - 45, 96, R.y2 - R.y1 + 90, { stroke: LC, rx: 48, sw: 4 }), m('min'), .4);
+    show(M(p, ['[8, 6] = 24'], { x: 800, y: 660, size: 68, fill: LC, o: 0 }), m('note'), .5);
+    show(word(p, '最小公倍數', 800, 740, { size: 32, fill: COL.dim, weight: 600 }), m('note', .3), .5);
+  }],
+
+  ['lcmStd', '用標準分解式求最小公倍數', (m, D) => {
+    const p = panel(0);
+    show(word(p, '標準分解式', 160, 150, { size: 32, weight: 600, fill: COL.dim, anchor: 'start' }), .2);
+    stdRows(p, m('std', .2));
+    [STD_X.p2, STD_X.p3, STD_X.p7].forEach((x, i) => {
+      const c = box(p, x - 55, 205, 110, 230, { fill: LC_BG, stroke: LC, sw: 2 });
+      p.insertBefore(c, p.firstChild);
+      show(c, m('all', 2.0 + i * .5), .4);
+    });
+    // the larger power of each: 2² from 84, 3² from 126, 7
+    const picks = [[STD_X.p2, 280], [STD_X.p3, 400], [STD_X.p7, 280]];
+    picks.forEach(([x, y], i) => show(ring(p, x + 8, y - 22, 46, LC), m('high', 2.6 + i * 1.1), .4));
+    const L1 = prodLine(p, [[['[84, 126]'], 480], ['=', 600], [['2', E(2)], STD_X.p2, LC], ['×', STD_X.x1], [['3', E(2)], STD_X.p3, LC], ['×', STD_X.x2], ['7', STD_X.p7, LC]], 570, 60);
+    show(L1[0], m('high', .3)); show(L1[1], m('high', .3));
+    [2, 4, 6].forEach((i, k) => show(L1[i], m('high', 2.8 + k * 1.1), .4));
+    [3, 5].forEach((i, k) => show(L1[i], m('high', 3.5 + k * 1.1), .3));
+    showAll(prodLine(p, [['=', 1150], ['252', 1260, LC]], 570, 60), m('ans', .3));
+    show(box(p, 335, 500, 1025, 100, { stroke: LC }), m('ans', 1), .5);
+  }],
+
+  ['lcmDiv', '用短除法求最小公倍數', (m, D) => {
+    const p = panel(0);
+    show(word(p, '短除法', 160, 150, { size: 32, weight: 600, fill: COL.dim, anchor: 'start' }), .2);
+    const R = shortDiv2(p, DIV, 430, 230, 115);
+    R.forEach((r, k) => { ['d', 'a', 'b'].forEach(key => r[key] && show(r[key], m('same', .2 + k * .3), .4)); if (r.line) draw(r.line, m('same', .3 + k * .3), .4); });
+    if (R[0].d) R.slice(0, 3).forEach(r => put(r.d, { s: 1 }));
+    // an L: the left column and the bottom row
+    show(box(p, 385, 180, 90, 330, { stroke: LC, rx: 45, sw: 4 }), m('L', .3), .4);
+    show(box(p, 505, 535, 330, 100, { stroke: LC, rx: 50, sw: 4 }), m('L', 2.2), .4);
+    show(word(p, '左邊', 430, 165, { size: 26, fill: LC, weight: 600 }), m('L', .5), .3);
+    show(word(p, '下面', 670, 670, { size: 26, fill: LC, weight: 600 }), m('L', 2.4), .3);
+    const A = prodLine(p, [['2', 1000, PR], ['×', 1060], ['3', 1120, PR], ['×', 1180], ['7', 1240, PR], ['×', 1300], ['2', 1360], ['×', 1420], ['3', 1480]], 360, 56);
+    showAll(A, m('ans', .1), .45);
+    showAll(prodLine(p, [['=', 1000], ['252', 1100, LC]], 470, 64), m('ans', 4.3));
+    show(word(p, '最小公倍數', 1200, 475, { size: 30, fill: LC, weight: 600, anchor: 'start' }), m('ans', 4.7), .4);
+  }],
+
+  ['relation', '兩數乘積', (m, D) => {
+    const p = panel(0);
+    const g = M(p, ['(84, 126) = 42'], { x: 470, y: 230, size: 54, fill: GC, o: 0 });
+    const l = M(p, ['[84, 126] = 252'], { x: 1130, y: 230, size: 54, fill: LC, o: 0 });
+    show(g, m('g'), .5); show(l, m('l'), .5);
+    const r1 = prodLine(p, [['42', 560, GC], ['×', 650], ['252', 750, LC], ['=', 860], ['10584', 1010]], 400, 64);
+    showAll(r1, m('prod'), .2);
+    const r2 = prodLine(p, [['84', 560], ['×', 650], ['126', 750], ['=', 860], ['10584', 1010]], 520, 64);
+    showAll(r2, m('ab'), .2);
+    show(word(p, '一樣！', 1180, 475, { size: 40, fill: COL.task, weight: 700, anchor: 'start' }), m('ab', 2.2), .4);
+    const rule = G(p, { o: 0, y: 16 });
+    mk('rect', { x: 310, y: 610, width: 980, height: 120, rx: 22, fill: '#fff', stroke: COL.task, 'stroke-width': 3 }, rule);
+    M(rule, ['a × b = ', '(a, b)', ' × ', '[a, b]'], { x: 800, y: 690, size: 58 });
+    tw(rule, { o: 1, y: 0 }, m('rule', 1), .6, out);
+  }],
+
+  ['q3', '隨堂練習', () => {
+    const p = panel(0);
+    show(M(p, ['[10, 15] = ?'], { x: 800, y: 380, size: 90, fill: LC, o: 0 }), .3, .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-lcm1015', prompt: ['求 10 和 15 的最小公倍數。'],
+    build: blanks([{ parts: ['[10, 15] = ', { box: '30' }],
+      why: '10 = 2 × 5，15 = 3 × 5；全部的質因數取次方大的：2 × 3 × 5 = 30。',
+      hint: '列出 15 的倍數：15、30、45⋯⋯哪一個也是 10 的倍數？' }]),
+  }], done) }],
+
+  ['wrap', '重點整理', (m) => {
+    const p = panel(0);
+    const items = [
+      ['最大公因數：共同的質因數，次方取小的', 'w1', ['(84, 126) = 2 × 3 × 7 = 42'], GC],
+      ['最小公倍數：全部的質因數，次方取大的', 'w2', ['[84, 126] = 2', E(2), ' × 3', E(2), ' × 7 = 252'], LC],
+      ['短除法除到互質：左邊相乘＝最大公因數', 'w3', null, COL.chalk],
+    ];
+    items.forEach(([str, mark, ex, color], i) => {
+      const g = G(p, { x: -16, y: 220 + i * 175, o: 0 });
+      mk('circle', { cx: 200, cy: -12, r: 26, fill: color === COL.chalk ? PR : color }, g);
+      T(g, String(i + 1), { x: 200, y: -1, size: 30, fill: '#fff', weight: 700, anchor: 'middle' });
+      T(g, str, { x: 260, size: 36, weight: 600 });
+      if (ex) M(g, ex, { x: 260, y: 62, size: 40, fill: color, anchor: 'start' });
+      else T(g, '左邊 × 下面＝最小公倍數', { x: 260, y: 58, size: 36, weight: 600, fill: COL.dim });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+
+  ['final1', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-gift', prompt: ['48 顆蘋果、36 顆橘子要分裝成一樣的禮盒：每盒蘋果一樣多、橘子也一樣多，全部裝完沒有剩。'],
+    build: blanks([
+      { parts: ['最多可以分成 ', { box: '12' }, ' 盒'], why: '盒數要同時整除 48 和 36，最多是 (48, 36) = 12。', hint: '盒數必須是 48 和 36 的公因數。' },
+      { parts: ['每盒有蘋果 ', { box: '4' }, ' 顆、橘子 ', { box: '3' }, ' 顆'], why: '48 ÷ 12 = 4，36 ÷ 12 = 3。', hint: '用總數除以盒數。' },
+    ]),
+  }], done, '本章練習 · 第 1 組，共 2 組') }],
+
+  ['final2', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-bus', prompt: ['甲公車每 12 分鐘一班、乙公車每 18 分鐘一班，早上 7:00 同時發車。下一次同時發車是幾點？'],
+    build: choice([['7:24'], ['7:36'], ['7:54'], ['10:36']], 1, '[12, 18] = 36，所以 36 分鐘後，也就是 7:36 再同時發車。', [
+      '24 是 12 的倍數，但不是 18 的倍數：7:24 只有甲發車。',
+      null,
+      '54 是 18 的倍數，但不是 12 的倍數：7:54 只有乙發車。',
+      '12 × 18 = 216 分鐘是公倍數，但不是最小的；12 和 18 不互質。',
+    ]),
+  }], done, '本章練習 · 第 2 組，共 2 組') }],
+
+  ['finish', '完成', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>

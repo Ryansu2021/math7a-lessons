@@ -1,0 +1,434 @@
+window.TIMINGS = {
+ "intro": {
+  "dur": 16.248,
+  "marks": {
+   "pos": 4.202,
+   "neg": 7.008,
+   "sub": 10.066
+  },
+  "cues": [
+   [
+    0.103,
+    "\u7b2c\u4e8c\u7ae0\u7b2c\u4e09\u7bc0\uff0c\u5206\u6578\u7684\u56db\u5247\u904b\u7b97\u3002"
+   ],
+   [
+    4.202,
+    "\u570b\u5c0f\u5b78\u904e\u6b63\u5206\u6578\u7684\u52a0\u6e1b\u4e58\u9664\uff1b\u73fe\u5728\u6578\u7dda\u4e0a\u591a\u4e86\u8ca0\u5206\u6578\u3002"
+   ],
+   [
+    10.066,
+    "\u597d\u6d88\u606f\u662f\uff1a\u8a08\u7b97\u7684\u898f\u5247\u5b8c\u5168\u4e00\u6a23\uff0c\u53ea\u8981\u518d\u628a\u6b63\u8ca0\u865f\u7ba1\u597d\u3002"
+   ]
+  ]
+ },
+ "equiv": {
+  "dur": 24.36,
+  "marks": {
+   "bar": 2.394,
+   "x2": 8.125,
+   "x4": 13.564,
+   "rule": 16.955
+  },
+  "cues": [
+   [
+    0.103,
+    "\u5148\u770b\u7b49\u503c\u5206\u6578\u3002"
+   ],
+   [
+    2.394,
+    "\u628a\u4e00\u689d\u9577\u65b9\u5f62\u5e73\u5206\u6210 3 \u4efd\uff0c\u5857 2 \u4efd\uff0c\u662f\u4e09\u5206\u4e4b\u4e8c\u3002"
+   ],
+   [
+    8.125,
+    "\u6bcf\u4e00\u4efd\u518d\u5207\u6210\u5169\u534a\uff0c\u5857\u8272\u7684\u90e8\u5206\u6c92\u6709\u8b8a\uff0c\u8b8a\u6210\u516d\u5206\u4e4b\u56db\uff1b\u518d\u5207\u4e00\u6b21\uff0c\u662f\u5341\u4e8c\u5206\u4e4b\u516b\u3002"
+   ],
+   [
+    16.955,
+    "\u5206\u5b50\u5206\u6bcd\u540c\u4e58\u4e00\u500b\u6578\u53eb\u505a\u64f4\u5206\uff0c\u540c\u9664\u4e00\u500b\u6578\u53eb\u505a\u7d04\u5206\uff0c\u5206\u6578\u7684\u5927\u5c0f\u90fd\u4e0d\u8b8a\u3002"
+   ]
+  ]
+ },
+ "simplest": {
+  "dur": 19.176,
+  "marks": {
+   "q": 0.103,
+   "gcd": 3.737,
+   "div": 9.894,
+   "ans": 11.968,
+   "name": 14.189
+  },
+  "cues": [
+   [
+    0.103,
+    "\u4e8c\u5341\u56db\u5206\u4e4b\u5341\u516b\u600e\u9ebc\u7d04\u5230\u6700\u7c21\uff1f"
+   ],
+   [
+    3.737,
+    "\u7528\u4e0a\u4e00\u7bc0\u7684\u6700\u5927\u516c\u56e0\u6578\uff1a18 \u548c 24 \u7684\u6700\u5927\u516c\u56e0\u6578\u662f 6\u3002"
+   ],
+   [
+    9.894,
+    "\u5206\u5b50\u5206\u6bcd\u540c\u9664\u4ee5 6\uff0c\u5f97\u5230\u56db\u5206\u4e4b\u4e09\u3002"
+   ],
+   [
+    14.189,
+    "\u5206\u5b50\u5206\u6bcd\u4e92\u8cea\u3001\u4e0d\u80fd\u518d\u7d04\uff0c\u5c31\u662f\u6700\u7c21\u5206\u6578\u3002"
+   ]
+  ]
+ },
+ "negForms": {
+  "dur": 15.696,
+  "marks": {
+   "a": 2.085,
+   "b": 3.468,
+   "c": 4.917,
+   "same": 7.008,
+   "std": 11.543
+  },
+  "cues": [
+   [
+    0.103,
+    "\u8ca0\u5206\u6578\u6709\u4e09\u7a2e\u5beb\u6cd5\uff1a\u8ca0\u56db\u5206\u4e4b\u4e09\u3001\u8ca0\u4e09\u9664\u4ee5\u56db\u3001\u4e09\u9664\u4ee5\u8ca0\u56db\u3002"
+   ],
+   [
+    7.008,
+    "\u5b83\u5011\u90fd\u662f\u540c\u4e00\u500b\u6578\uff0c\u5728\u6578\u7dda\u4e0a 0 \u7684\u5de6\u908a\u3002"
+   ],
+   [
+    11.543,
+    "\u7fd2\u6163\u4e0a\uff0c\u6211\u5011\u628a\u8ca0\u865f\u5beb\u5728\u6700\u524d\u9762\u3002"
+   ]
+  ]
+ },
+ "q1": {
+  "dur": 6.48,
+  "marks": {},
+  "cues": [
+   [
+    0.103,
+    "\u96a8\u5802\u7df4\u7fd2\u3002"
+   ],
+   [
+    2.194,
+    "\u628a\u8ca0\u56db\u5341\u4e8c\u5206\u4e4b\u4e09\u5341\u5316\u6210\u6700\u7c21\u5206\u6578\u3002"
+   ]
+  ]
+ },
+ "compare": {
+  "dur": 20.712,
+  "marks": {
+   "lcm": 3.883,
+   "conv": 8.816,
+   "ans": 14.827
+  },
+  "cues": [
+   [
+    0.103,
+    "\u6bd4\u8f03\u56db\u5206\u4e4b\u4e09\u548c\u516d\u5206\u4e4b\u4e94\u7684\u5927\u5c0f\u3002"
+   ],
+   [
+    3.883,
+    "\u5148\u901a\u5206\uff1a\u5206\u6bcd 4 \u548c 6 \u7684\u6700\u5c0f\u516c\u500d\u6578\u662f 12\u3002"
+   ],
+   [
+    8.816,
+    "\u56db\u5206\u4e4b\u4e09\u7b49\u65bc\u5341\u4e8c\u5206\u4e4b\u4e5d\uff0c\u516d\u5206\u4e4b\u4e94\u7b49\u65bc\u5341\u4e8c\u5206\u4e4b\u5341\u3002"
+   ],
+   [
+    14.827,
+    "\u5206\u6bcd\u76f8\u540c\u6bd4\u5206\u5b50\uff0c9 \u6bd4 10 \u5c0f\uff0c\u6240\u4ee5\u56db\u5206\u4e4b\u4e09\u6bd4\u8f03\u5c0f\u3002"
+   ]
+  ]
+ },
+ "compareNeg": {
+  "dur": 17.472,
+  "marks": {
+   "line": 2.633,
+   "left": 7.181,
+   "rule": 12.699
+  },
+  "cues": [
+   [
+    0.103,
+    "\u5982\u679c\u90fd\u52a0\u4e0a\u8ca0\u865f\u5462\uff1f"
+   ],
+   [
+    2.633,
+    "\u628a\u8ca0\u56db\u5206\u4e4b\u4e09\u548c\u8ca0\u516d\u5206\u4e4b\u4e94\u653e\u5230\u6578\u7dda\u4e0a\u3002"
+   ],
+   [
+    7.181,
+    "\u8ca0\u516d\u5206\u4e4b\u4e94\u96e2 0 \u6bd4\u8f03\u9060\uff0c\u5728\u66f4\u5de6\u908a\uff0c\u6240\u4ee5\u6bd4\u8f03\u5c0f\u3002"
+   ],
+   [
+    12.699,
+    "\u8ca0\u6578\u6bd4\u5927\u5c0f\uff1a\u7d55\u5c0d\u503c\u5927\u7684\uff0c\u53cd\u800c\u6bd4\u8f03\u5c0f\u3002"
+   ]
+  ]
+ },
+ "q2": {
+  "dur": 6.792,
+  "marks": {},
+  "cues": [
+   [
+    0.103,
+    "\u96a8\u5802\u7df4\u7fd2\u3002"
+   ],
+   [
+    2.194,
+    "\u8ca0\u4e09\u5206\u4e4b\u4e8c\u548c\u8ca0\u4e94\u5206\u4e4b\u4e09\uff0c\u54ea\u4e00\u500b\u6bd4\u8f03\u5927\uff1f"
+   ]
+  ]
+ },
+ "addSame": {
+  "dur": 14.52,
+  "marks": {
+   "eq": 2.181,
+   "num": 5.824,
+   "ans": 10.279
+  },
+  "cues": [
+   [
+    0.103,
+    "\u63a5\u8457\u662f\u52a0\u6cd5\u3002"
+   ],
+   [
+    2.181,
+    "\u8ca0\u4e5d\u5206\u4e4b\u4e03\u52a0\u4e5d\u5206\u4e4b\u56db\uff0c\u5206\u6bcd\u76f8\u540c\uff0c\u5206\u6bcd\u4e0d\u8b8a\uff0c\u5206\u5b50\u76f8\u52a0\uff1a\u8ca0 7 \u52a0 4 \u7b49\u65bc\u8ca0 3\uff0c\u5f97\u5230\u8ca0\u4e5d\u5206\u4e4b\u4e09\uff0c\u7d04\u5206\u6210\u8ca0\u4e09\u5206\u4e4b\u4e00\u3002"
+   ]
+  ]
+ },
+ "addDiff": {
+  "dur": 15.552,
+  "marks": {
+   "eq": 3.192,
+   "lcm": 5.625,
+   "conv": 8.577,
+   "ans": 12.553
+  },
+  "cues": [
+   [
+    0.103,
+    "\u5206\u6bcd\u4e0d\u540c\u6642\uff0c\u5148\u901a\u5206\u3002"
+   ],
+   [
+    3.192,
+    "\u8ca0\u516d\u5206\u4e4b\u4e94\u52a0\u516b\u5206\u4e4b\u4e09\uff0c6 \u548c 8 \u7684\u6700\u5c0f\u516c\u500d\u6578\u662f 24\uff0c\u8b8a\u6210\u8ca0\u4e8c\u5341\u56db\u5206\u4e4b\u4e8c\u5341\u52a0\u4e8c\u5341\u56db\u5206\u4e4b\u4e5d\uff0c\u7b49\u65bc\u8ca0\u4e8c\u5341\u56db\u5206\u4e4b\u5341\u4e00\u3002"
+   ]
+  ]
+ },
+ "sub": {
+  "dur": 16.728,
+  "marks": {
+   "eq": 1.526,
+   "flip": 5.505,
+   "ans": 10.612
+  },
+  "cues": [
+   [
+    0.103,
+    "\u6e1b\u6cd5\u4e5f\u4e00\u6a23\uff1a\u6e1b\u53bb\u4e00\u500b\u6578\uff0c\u7b49\u65bc\u52a0\u4e0a\u5b83\u7684\u76f8\u53cd\u6578\u3002"
+   ],
+   [
+    5.505,
+    "\u4e09\u5206\u4e4b\u4e8c\u6e1b\u8ca0\u56db\u5206\u4e4b\u4e00\uff0c\u8b8a\u6210\u4e09\u5206\u4e4b\u4e8c\u52a0\u56db\u5206\u4e4b\u4e00\uff0c\u901a\u5206\u5f8c\u662f\u5341\u4e8c\u5206\u4e4b\u516b\u52a0\u5341\u4e8c\u5206\u4e4b\u4e09\uff0c\u7b49\u65bc\u5341\u4e8c\u5206\u4e4b\u5341\u4e00\u3002"
+   ]
+  ]
+ },
+ "q3": {
+  "dur": 5.784,
+  "marks": {},
+  "cues": [
+   [
+    0.103,
+    "\u96a8\u5802\u7df4\u7fd2\u3002"
+   ],
+   [
+    2.194,
+    "\u8a08\u7b97\u8ca0\u4e8c\u5206\u4e4b\u4e00\u52a0\u4e09\u5206\u4e4b\u4e8c\u3002"
+   ]
+  ]
+ },
+ "multiply": {
+  "dur": 20.232,
+  "marks": {
+   "eq": 2.048,
+   "sign": 4.668,
+   "cancel": 9.362,
+   "ans": 15.053
+  },
+  "cues": [
+   [
+    0.103,
+    "\u5206\u6578\u4e58\u6cd5\u3002"
+   ],
+   [
+    2.048,
+    "\u8ca0\u4e5d\u5206\u4e4b\u56db\u4e58\u516b\u5206\u4e4b\u5341\u4e94\uff0c\u5148\u6c7a\u5b9a\u6b63\u8ca0\u865f\uff1a\u4e00\u8ca0\u4e00\u6b63\uff0c\u7b54\u6848\u662f\u8ca0\u7684\u3002"
+   ],
+   [
+    9.362,
+    "\u518d\u5148\u7d04\u5206\uff1a4 \u548c 8 \u540c\u9664\u4ee5 4\uff0c15 \u548c 9 \u540c\u9664\u4ee5 3\u3002"
+   ],
+   [
+    15.053,
+    "\u5206\u5b50\u4e58\u5206\u5b50\u3001\u5206\u6bcd\u4e58\u5206\u6bcd\uff0c\u5f97\u5230\u8ca0\u516d\u5206\u4e4b\u4e94\u3002"
+   ]
+  ]
+ },
+ "reciprocal": {
+  "dur": 16.92,
+  "marks": {
+   "def": 0.103,
+   "ex1": 3.59,
+   "ex2": 6.356,
+   "one": 9.535,
+   "zero": 13.019
+  },
+  "cues": [
+   [
+    0.103,
+    "\u5206\u5b50\u5206\u6bcd\u5c0d\u8abf\uff0c\u5c31\u5f97\u5230\u5012\u6578\u3002"
+   ],
+   [
+    3.59,
+    "\u4e94\u5206\u4e4b\u4e09\u7684\u5012\u6578\u662f\u4e09\u5206\u4e4b\u4e94\uff0c\u8ca0 2 \u7684\u5012\u6578\u662f\u8ca0\u4e8c\u5206\u4e4b\u4e00\u3002"
+   ],
+   [
+    9.535,
+    "\u4e92\u70ba\u5012\u6578\u7684\u5169\u6578\u76f8\u4e58\u7b49\u65bc 1\u3002"
+   ],
+   [
+    13.019,
+    "0 \u6c92\u6709\u5012\u6578\uff0c\u56e0\u70ba\u5206\u6bcd\u4e0d\u80fd\u662f 0\u3002"
+   ]
+  ]
+ },
+ "divide": {
+  "dur": 14.496,
+  "marks": {
+   "rule": 0.103,
+   "eq": 3.883,
+   "flip": 6.676,
+   "sign": 9.441,
+   "ans": 11.742
+  },
+  "cues": [
+   [
+    0.103,
+    "\u9664\u4ee5\u4e00\u500b\u6578\uff0c\u7b49\u65bc\u4e58\u4ee5\u5b83\u7684\u5012\u6578\u3002"
+   ],
+   [
+    3.883,
+    "\u8ca0\u516d\u5206\u4e4b\u4e94\u9664\u4ee5\u8ca0\u4e5d\u5206\u4e4b\u5341\uff0c\u8b8a\u6210\u4e58\u4ee5\u8ca0\u5341\u5206\u4e4b\u4e5d\u3002"
+   ],
+   [
+    9.441,
+    "\u5169\u500b\u8ca0\u6578\u76f8\u4e58\u662f\u6b63\u7684\uff0c\u7d04\u5206\u5f8c\u7b49\u65bc\u56db\u5206\u4e4b\u4e09\u3002"
+   ]
+  ]
+ },
+ "q4": {
+  "dur": 5.976,
+  "marks": {},
+  "cues": [
+   [
+    0.103,
+    "\u96a8\u5802\u7df4\u7fd2\u3002"
+   ],
+   [
+    2.194,
+    "\u8a08\u7b97\u8ca0\u56db\u5206\u4e4b\u4e09\u9664\u4ee5\u516b\u5206\u4e4b\u4e5d\u3002"
+   ]
+  ]
+ },
+ "mixed": {
+  "dur": 19.032,
+  "marks": {
+   "eq": 2.713,
+   "common": 8.67,
+   "dist": 11.144,
+   "sum": 12.926,
+   "ans": 16.197
+  },
+  "cues": [
+   [
+    0.103,
+    "\u6700\u5f8c\u770b\u56db\u5247\u6df7\u5408\u3002"
+   ],
+   [
+    2.713,
+    "\u8ca0\u56db\u5206\u4e4b\u4e09\u4e58\u4e03\u5206\u4e4b\u4e94\uff0c\u52a0\u4e0a\u8ca0\u56db\u5206\u4e4b\u4e09\u4e58\u4e03\u5206\u4e4b\u4e8c\u3002"
+   ],
+   [
+    8.67,
+    "\u5169\u9805\u90fd\u4e58\u4e86\u8ca0\u56db\u5206\u4e4b\u4e09\uff0c\u7528\u5206\u914d\u5f8b\u63d0\u51fa\u4f86\uff0c\u62ec\u865f\u88e1\u4e03\u5206\u4e4b\u4e94\u52a0\u4e03\u5206\u4e4b\u4e8c\u7b49\u65bc 1\uff0c\u7b54\u6848\u5c31\u662f\u8ca0\u56db\u5206\u4e4b\u4e09\u3002"
+   ]
+  ]
+ },
+ "wrap": {
+  "dur": 24.168,
+  "marks": {
+   "w1": 2.008,
+   "w2": 6.676,
+   "w3": 12.62,
+   "end": 20.585
+  },
+  "cues": [
+   [
+    0.103,
+    "\u91cd\u9ede\u6574\u7406\u3002"
+   ],
+   [
+    2.008,
+    "\u7d04\u5206\u7528\u6700\u5927\u516c\u56e0\u6578\uff0c\u901a\u5206\u7528\u6700\u5c0f\u516c\u500d\u6578\u3002"
+   ],
+   [
+    6.676,
+    "\u52a0\u6e1b\uff1a\u5148\u901a\u5206\uff1b\u6e1b\u53bb\u4e00\u500b\u6578\uff0c\u7b49\u65bc\u52a0\u4e0a\u5b83\u7684\u76f8\u53cd\u6578\u3002"
+   ],
+   [
+    12.62,
+    "\u4e58\u9664\uff1a\u5148\u5b9a\u6b63\u8ca0\u865f\uff1b\u9664\u4ee5\u4e00\u500b\u6578\uff0c\u7b49\u65bc\u4e58\u4ee5\u5b83\u7684\u5012\u6578\uff1b\u80fd\u7d04\u5206\u5c31\u5148\u7d04\u5206\u3002"
+   ],
+   [
+    20.585,
+    "\u63a5\u4e0b\u4f86\uff0c\u505a\u505a\u770b\u672c\u7ae0\u7df4\u7fd2\u3002"
+   ]
+  ]
+ },
+ "final1": {
+  "dur": 4.512,
+  "marks": {},
+  "cues": [
+   [
+    0.103,
+    "\u672c\u7ae0\u7df4\u7fd2\u3002"
+   ],
+   [
+    2.048,
+    "\u8a08\u7b97\u4e0b\u9762\u5169\u984c\u3002"
+   ]
+  ]
+ },
+ "final2": {
+  "dur": 3.792,
+  "marks": {},
+  "cues": [
+   [
+    0.103,
+    "\u6700\u5f8c\u4e00\u984c\uff0c\u6ce8\u610f\u904b\u7b97\u7684\u9806\u5e8f\u3002"
+   ]
+  ]
+ },
+ "finish": {
+  "dur": 4.704,
+  "marks": {},
+  "cues": [
+   [
+    0.103,
+    "\u505a\u5f97\u597d\uff0c\u5206\u6578\u7684\u56db\u5247\u904b\u7b97\u9019\u4e00\u7bc0\u5b8c\u6210\u4e86\u3002"
+   ]
+  ]
+ }
+};

@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2-1 質因數分解 — 國中數學七上</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render"><!-- hold the first frame until the player exists, so the page transition can run -->
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="audio/zh-TW/timings.js"></script>
+<script>
+'use strict';
+// 2-1 質因數分解. Beat table and decisions: books/math7a/chapters/ch05.md.
+const CHAPTER = { number: 5, title: '2-1 質因數分解', minutes: 5, language: 'zh-TW', next: '../ch06/' };
+
+// cover kicker and finish card: the textbook's section, not the engine's running chapter number
+Object.assign(TRANSLATIONS.zh, { chapterNumber: '七年級上學期 · 第 2 章', chapterComplete: '2-1 完成' });
+
+const PR = '#c0397a';                   // prime / prime factor (magenta), the whole chapter
+const NUM = 56;                         // size of a number in a tree
+
+/* ---------- chapter drawing helpers ---------- */
+const word = (p, str, x, y, { size = 34, fill = COL.chalk, anchor = 'middle', weight = 500, o = 0 } = {}) =>
+  T(p, str, { x, y, size, fill, anchor, weight, o });
+const nm = (p, v, x, y, { size = NUM, fill = COL.chalk, o = 0, s = 1 } = {}) => M(p, [String(v)], { x, y: y + size * .34, size, fill, o, s });
+const ring = (p, x, y, r = 40) => mk('circle', { cx: x, cy: y, r, fill: 'none', stroke: PR, 'stroke-width': 3 }, G(p));
+const branch = (p, a, b) => path(p, `M${a[0]} ${a[1] + 38}L${b[0]} ${b[1] - 40}`, { stroke: COL.dim, 'stroke-width': 3, 'stroke-linecap': 'round' }, { d: 0 });
+// a row of math tokens, each { t, fill }; returns the tokens, all hidden
+const eqRow = (p, items, x, y, size = 58) => tokens(p, items.map(it => typeof it === 'string' ? { t: it } : it), { x, y, size, anchor: 'middle', o: 0 });
+
+/* factors of 60: top row 1..6, bottom row the partners, so each column is a factor pair */
+const FAC_TOP = [1, 2, 3, 4, 5, 6], FAC_BOT = [60, 30, 20, 15, 12, 10];
+const PRIMES = [2, 3, 5];
+const colX = i => 800 + (i - 2.5) * 175;
+
+/* tree of 60 = 6 × 10 */
+const TREE = { root: [800, 210], a: [610, 380], b: [990, 380], a1: [510, 550], a2: [710, 550], b1: [890, 550], b2: [1090, 550] };
+
+
+/* a whole tree, grown at the times given; REL is each node's place from the root */
+const REL = { root: [0, 0], a: [-180, 165], b: [180, 165], a1: [-270, 330], a2: [-90, 330], b1: [90, 330], b2: [270, 330] };
+function growTree(p, cx, top, vals, at) {
+  const P2 = k => [cx + REL[k][0], top + REL[k][1]], n = {};
+  n.root = nm(p, vals.root, ...P2('root')); show(n.root, at.root ?? .3, .4);
+  [['root', 'a'], ['root', 'b'], ['a', 'a1'], ['a', 'a2'], ['b', 'b1'], ['b', 'b2']].forEach(([f, k]) => {
+    draw(branch(p, P2(f), P2(k)), at[k], .45);
+    n[k] = nm(p, vals[k], ...P2(k), { s: .6 }); pop(n[k], at[k] + .3);
+  });
+  if (at.leaf !== undefined) ['a1', 'a2', 'b1', 'b2'].forEach((k, i) => {
+    const r = ring(p, ...P2(k)); put(r.parentNode, { o: 0 }); show(r.parentNode, at.leaf + i * .15, .4);
+    show(nm(p, vals[k], ...P2(k), { fill: PR }), at.leaf + i * .15, .4);
+  });
+  return { n, at: P2 };
+}
+/* one product line laid out by hand: items [text or parts, x, colour?]; ×, = in the text font */
+function prodLine(p, items, y, size = 58) {
+  return items.map(([t, x, fill]) => (t === '×' || t === '=')
+    ? T(p, t, { x, y: y - 4, size: size * .8, fill: COL.dim, anchor: 'middle', o: 0 })
+    : M(p, [].concat(t), { x, y, size, fill: fill || COL.chalk, o: 0 }));
+}
+/* short division: rows of [divisor, number]; the last row has no divisor */
+function shortDiv(p, rows, x0, y0, dy, size = 54) {
+  return rows.map(([d, v], k) => {
+    const y = y0 + k * dy, r = {};
+    r.v = nm(p, v, x0 + 120, y, { size });
+    if (d) {
+      r.d = nm(p, d, x0, y, { size, fill: PR, s: .6 });
+      r.line = path(p, `M${x0 + 45} ${y - size * .55}V${y + size * .5}H${x0 + 200}`, { stroke: COL.chalk, 'stroke-width': 3, fill: 'none' }, { d: 0 });
+    }
+    return r;
+  });
+}
+
+/* ---------- beats: [id, title, run(m, D), { ask }?] ---------- */
+const BEATS = [
+  ['intro', '2-1 質因數分解', (m, D) => {
+    const g = G(scene, { o: 0, y: 24 });
+    word(g, '七年級上學期 · 第 2 章', 800, 320, { size: 30, fill: COL.dim, o: 1 });
+    word(g, '2-1 質因數分解', 800, 430, { size: 96, weight: 600, o: 1 });
+    tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+    tw(g, { o: 0, y: -40 }, m('atoms', -.4), .7);
+
+    // 60 breaks into its primes, like a substance into atoms
+    const big = nm(scene, 60, 800, 400, { size: 150, s: .6 });
+    pop(big, m('atoms', .2));
+    const parts = [2, 2, 3, 5], xs = [500, 700, 900, 1100];
+    const bits = parts.map((v, i) => chip(scene, [String(v)], PR, { x: 800, y: 400, o: 0, s: .4, size: 64 }));
+    tw(big, { s: 1.25, o: 0 }, m('split'), .45);
+    bits.forEach((c, i) => { tw(c, { x: xs[i], y: 430, o: 1, s: 1 }, m('split', .05 + i * .07), .8, back); });
+    const times = [600, 800, 1000].map(x => word(scene, '×', x, 452, { size: 52, fill: COL.dim }));
+    times.forEach((e, i) => show(e, m('split', .7 + i * .08), .4));
+    const q = word(scene, '怎麼拆？拆完怎麼寫？', 800, 640, { size: 40, fill: COL.task, weight: 600 });
+    show(q, m('sub'), .6);
+    [...bits, ...times, q].forEach(e => hide(e, D - .7, .6));
+  }],
+
+  ['factors', '質因數', (m, D) => {
+    const p = panel(0);
+    show(word(p, '60 的因數', 800, 165, { size: 40, weight: 600, fill: COL.dim }), .2);
+    const all = [...FAC_TOP.map((v, i) => [v, colX(i), 320]), ...FAC_BOT.map((v, i) => [v, colX(i), 470])];
+    S.fac = {};
+    all.forEach(([v, x, y]) => { S.fac[v] = chip(p, [String(v)], COL.faint, { x, y, o: 0, s: .5, size: 46 }); });
+    // spoken in rising order: 1 2 3 4 5 6 10 12 15 20 30 60
+    [1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60].forEach((v, k) => pop(S.fac[v], m('f' + (k + 1))));
+    // pair links appear with the last factor: each column multiplies to 60
+    const links = FAC_TOP.map((v, i) => path(p, `M${colX(i)} 352V438`, { stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '4 6' }, { d: 0 }));
+    links.forEach((l, i) => draw(l, m('f12', .3 + i * .05), .5));
+
+    // the primes light up; the others step back
+    const glow = PRIMES.map(v => { const [x, y] = [st(S.fac[v]).x, st(S.fac[v]).y]; return chip(p, [String(v)], PR, { x, y, o: 0, size: 46 }); });
+    glow.forEach((c, i) => { show(c, m('prime', i * .25), .35); pulse(c, m('prime', i * .25), 1.25); });
+    Object.entries(S.fac).forEach(([v, c]) => { if (!PRIMES.includes(+v)) tw(c, { o: .3 }, m('prime', .8), .6); });
+    links.forEach(l => tw(l, { o: .3 }, m('prime', .8), .6));
+
+    // the definition, under the picture
+    const def = G(p, { y: 20, o: 0 });
+    word(def, '質因數', 640, 640, { size: 46, weight: 700, fill: PR, anchor: 'end', o: 1 });
+    word(def, '＝ 是因數，也是質數', 660, 640, { size: 46, weight: 600, anchor: 'start', o: 1 });
+    word(def, '60 的質因數：2、3、5', 800, 715, { size: 34, fill: COL.dim, o: 1 });
+    tw(def, { o: 1, y: 0 }, m('name'), .6, out);
+
+    // 1 is not a prime, so it is not a prime factor
+    const c1 = colX(0);
+    const x = path(p, `M${c1 - 26} 296L${c1 + 26} 344M${c1 + 26} 296L${c1 - 26} 344`, { stroke: COL.bad, 'stroke-width': 5, 'stroke-linecap': 'round' }, { d: 0 });
+    tw(S.fac[1], { o: 1 }, m('one'), .3);
+    draw(x, m('one', .2), .4);
+    const note = word(p, '1 不是質數', c1, 245, { size: 28, fill: COL.bad, weight: 600 });
+    show(note, m('one', .3), .4);
+  }],
+
+  ['tree', '樹狀圖', (m, D) => {
+    const p = panel(0);
+    show(word(p, '樹狀圖', 160, 150, { size: 34, weight: 600, fill: COL.dim, anchor: 'start' }), .2);
+    const n = {};
+    n.root = nm(p, 60, ...TREE.root);
+    show(n.root, .3, .4);
+    const grow = (from, to, v, t, fill = COL.chalk) => {
+      draw(branch(p, TREE[from], TREE[to]), t, .45);
+      n[to] = nm(p, v, ...TREE[to], { fill, s: .6 });
+      n[to]._v = v;
+      pop(n[to], t + .3);
+    };
+    grow('root', 'a', 6, m('split', 1.0)); grow('root', 'b', 10, m('split', 1.6));
+    grow('a', 'a1', 2, m('six', 1.5)); grow('a', 'a2', 3, m('six', 2.1));
+    grow('b', 'b1', 2, m('ten', .8)); grow('b', 'b2', 5, m('ten', 1.4));
+    // the ends are primes: ring them, the leaves turn pink
+    const leaves = ['a1', 'a2', 'b1', 'b2'];
+    leaves.forEach((k, i) => {
+      const r = ring(p, ...TREE[k]);
+      put(r.parentNode, { o: 0 });
+      show(r.parentNode, m('leaf', i * .15), .4);
+      show(nm(p, n[k]._v, ...TREE[k], { fill: PR }), m('leaf', i * .15), .4);
+    });
+    // read the leaves off into one product, laid out by hand so the gaps are even
+    const EQ_Y = 745, EQ = [['60', 590], ['=', 670], ['2', 745, PR], ['×', 810], ['2', 875, PR], ['×', 940], ['3', 1005, PR], ['×', 1070], ['5', 1135, PR]];
+    const row = EQ.map(([t, x, fill]) => (t === '×' || t === '=')
+      ? T(p, t, { x: x - 65, y: EQ_Y - 4, size: 50, fill: COL.dim, anchor: 'middle', o: 0 })
+      : M(p, [t], { x: x - 65, y: EQ_Y, size: 62, fill: fill || COL.chalk, o: 0 }));
+    [0, 1, 3, 5, 7].forEach((i, k) => show(row[i], m('read', k * .12), .4));
+    [2, 4, 6, 8].forEach((i, k) => {
+      const [lx, ly] = TREE[leaves[k]];
+      const fly = nm(p, n[leaves[k]]._v, lx, ly, { fill: PR });
+      const t0 = m('read', .3 + k * .25);
+      show(fly, t0, .01);
+      tw(fly, { x: EQ[i][1] - 65, y: EQ_Y, s: 62 / NUM }, t0, .7, io);
+      hide(fly, t0 + .75, .05);
+      show(row[i], t0 + .7, .1);
+    });
+  }],
+
+  ['tree2', '換一個拆法', (m, D) => {
+    const p = panel(0);
+    const V1 = { root: 60, a: 6, b: 10, a1: 2, a2: 3, b1: 2, b2: 5 }, V2 = { root: 60, a: 4, b: 15, a1: 2, a2: 2, b1: 3, b2: 5 };
+    // the first tree, already grown, on the left
+    growTree(p, 430, 170, V1, { a: .2, b: .2, a1: .2, a2: .2, b1: .2, b2: .2, leaf: .3 });
+    show(word(p, '60 = 6 × 10', 430, 110, { size: 30, fill: COL.dim }), .3);
+    // a second way on the right
+    show(word(p, '60 = 4 × 15', 1170, 110, { size: 30, fill: COL.dim }), m('alt'));
+    growTree(p, 1170, 170, V2, { a: m('alt', .9), b: m('alt', 1.4), a1: m('four', .5), a2: m('four', .9), b1: m('fifteen', .6), b2: m('fifteen', 1.0), leaf: m('same', -.3) });
+    // both read the same four primes
+    const L = prodLine(p, [['2', 300, PR], ['×', 365], ['2', 430, PR], ['×', 495], ['3', 560, PR], ['×', 625], ['5', 690, PR]], 640, 52);
+    const Rr = prodLine(p, [['2', 1040, PR], ['×', 1105], ['2', 1170, PR], ['×', 1235], ['3', 1300, PR], ['×', 1365], ['5', 1430, PR]], 640, 52);
+    L.forEach((e, i) => show(e, m('same', .2 + i * .05), .35));
+    Rr.forEach((e, i) => show(e, m('same', .6 + i * .05), .35));
+    const eq = word(p, '＝', 800, 645, { size: 54, weight: 700, fill: COL.task });
+    pop(eq, m('same', 1.3));
+    // the theorem, then the name of what we just did
+    const thm = G(p, { o: 0, y: 16 });
+    word(thm, '算術基本定理', 800, 755, { size: 40, weight: 700, fill: COL.task, o: 1 });
+    word(thm, '不管怎麼拆，最後得到的質數都一樣', 800, 812, { size: 32, fill: COL.dim, o: 1 });
+    tw(thm, { o: 1, y: 0 }, m('thm'), .6, out);
+    tw(thm, { o: 0 }, m('name', -.3), .3);
+    const nm2 = G(p, { o: 0, y: 16 });
+    word(nm2, '質因數分解', 640, 785, { size: 44, weight: 700, fill: PR, anchor: 'end', o: 1 });
+    word(nm2, '＝ 把一個數寫成質數的連乘積', 660, 785, { size: 40, weight: 600, anchor: 'start', o: 1 });
+    tw(nm2, { o: 1, y: 0 }, m('name'), .6, out);
+  }],
+
+  ['q1', '隨堂練習', () => {
+    const p = panel(0);
+    show(word(p, '84 的因數', 800, 150, { size: 38, weight: 600, fill: COL.dim }), .2);
+    const top = [1, 2, 3, 4, 6, 7], bot = [84, 42, 28, 21, 14, 12];
+    top.forEach((v, i) => pop(chip(p, [String(v)], COL.faint, { x: colX(i), y: 270, o: 0, s: .5, size: 44 }), .3 + i * .06));
+    bot.forEach((v, i) => pop(chip(p, [String(v)], COL.faint, { x: colX(i), y: 410, o: 0, s: .5, size: 44 }), .7 + i * .06));
+    top.forEach((v, i) => draw(path(p, `M${colX(i)} 300V380`, { stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '4 6' }, { d: 0 }), 1.1, .4));
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-pf84', prompt: ['下面哪些是 84 的質因數？每一列選一個。'],
+    build: grid([
+      { parts: ['2'], ans: ['y'], why: '2 是 84 的因數，而且是質數。' },
+      { parts: ['3'], ans: ['y'], why: '84 = 3 × 28，3 是質數。' },
+      { parts: ['4'], ans: ['n'], why: '4 是 84 的因數，但 4 = 2 × 2 不是質數。' },
+      { parts: ['7'], ans: ['y'], why: '84 = 7 × 12，7 是質數。' },
+      { parts: ['21'], ans: ['n'], why: '21 = 3 × 7，是合數，不是質因數。' },
+    ], [['y', '是質因數', PR], ['n', '不是', COL.dim]], { multi: false, text: true }),
+  }], done) }],
+
+  ['divide', '短除法', (m, D) => {
+    const p = panel(0);
+    show(word(p, '短除法', 160, 150, { size: 34, weight: 600, fill: COL.dim, anchor: 'start' }), .2);
+    const R = shortDiv(p, [[2, 84], [2, 42], [3, 21], [null, 7]], 520, 230, 120);
+    show(R[0].v, .3, .4);
+    ['d1', 'd2', 'd3'].forEach((mk_, k) => {
+      pop(R[k].d, m(mk_, .3));
+      draw(R[k].line, m(mk_, .5), .5);
+      show(R[k + 1].v, m(mk_, 1.6), .4);
+    });
+    const r7 = ring(p, 640, 590, 42); put(r7.parentNode, { o: 0 }); show(r7.parentNode, m('stop'), .4);
+    show(nm(p, 7, 640, 590, { size: 54, fill: PR }), m('stop'), .4);
+    show(word(p, '7 是質數，停', 720, 600, { size: 30, fill: COL.task, weight: 600, anchor: 'start' }), m('stop', .3), .4);
+    // divisors and the last 7 read off into one product on the right
+    const Q = [['84', 960], ['=', 1040], ['2', 1110, PR], ['×', 1170], ['2', 1230, PR], ['×', 1290], ['3', 1350, PR], ['×', 1410], ['7', 1470, PR]];
+    const row = prodLine(p, Q, 420, 56);
+    [0, 1, 3, 5, 7].forEach((i, k) => show(row[i], m('read', k * .1), .4));
+    const from = [[520, 230], [520, 350], [520, 470], [640, 590]];
+    [2, 4, 6, 8].forEach((i, k) => {
+      const t0 = m('read', .4 + k * .3), fly = nm(p, Q[i][0], ...from[k], { size: 54, fill: PR });
+      show(fly, t0, .01); tw(fly, { x: Q[i][1], y: 420, s: 56 / 54 }, t0, .7, io); hide(fly, t0 + .75, .05); show(row[i], t0 + .7, .1);
+    });
+  }],
+
+  ['standard', '標準分解式', (m, D) => {
+    const p = panel(0);
+    const A = prodLine(p, [['84', 520], ['=', 610], ['2', 690, PR], ['×', 755], ['2', 820, PR], ['×', 885], ['3', 950, PR], ['×', 1015], ['7', 1080, PR]], 250, 60);
+    A.forEach((e, i) => show(e, .3 + i * .03, .4));
+    // the two 2s bracketed and folded into 2²
+    const br = path(p, 'M675 285Q675 305 700 305H810Q835 305 835 285', { stroke: COL.task, 'stroke-width': 3, fill: 'none' }, { d: 0 });
+    draw(br, m('group'), .5);
+    const sq = M(p, ['2', E(2)], { x: 755, y: 430, size: 66, fill: PR, o: 0, s: .6 });
+    const arr = path(p, 'M755 315V362', { stroke: COL.task, 'stroke-width': 3 }, { d: 0 });
+    draw(arr, m('group', .4), .3); pop(sq, m('group', .7));
+    const B = prodLine(p, [['84', 520], ['=', 610], ['×', 850], ['3', 920, PR], ['×', 990], ['7', 1060, PR]], 430, 66);
+    [0, 1].forEach(i => show(B[i], m('group', 1), .4));
+    [2, 3, 4, 5].forEach((i, k) => show(B[i], m('order', .2 + k * .12), .4));
+    // small to large
+    const ord = path(p, 'M720 470H1090', { stroke: COL.dim, 'stroke-width': 2.5, 'marker-end': '' }, { d: 0 });
+    draw(ord, m('order', .8), .6);
+    const tip = path(p, 'M1078 462L1092 470L1078 478', { stroke: COL.dim, 'stroke-width': 2.5, fill: 'none' }, { o: 0 });
+    show(tip, m('order', 1.3), .2);
+    show(word(p, '由小到大', 905, 505, { size: 26, fill: COL.dim }), m('order', 1.2), .4);
+    // the name
+    const box = mk('rect', { x: 470, y: 360, width: 650, height: 100, rx: 18, fill: 'none', stroke: COL.task, 'stroke-width': 3 }, G(p));
+    put(box.parentNode, { o: 0 }); show(box.parentNode, m('std', 1.5), .5);
+    show(word(p, '標準分解式', 1150, 425, { size: 38, weight: 700, fill: COL.task, anchor: 'start' }), m('std', 1.8), .5);
+    // what it says at a glance
+    [['2', E(2)], ['3'], ['7']].forEach((parts, k) => {
+      const x = [755, 920, 1060][k];
+      show(word(p, ['兩個 2', '一個 3', '一個 7'][k], x, 640, { size: 30, fill: PR, weight: 600 }), m('meaning', 2.2 + k * .9), .4);
+      draw(path(p, `M${x} 530V605`, { stroke: COL.faint, 'stroke-width': 2, 'stroke-dasharray': '4 6' }, { d: 0 }), m('meaning', 2.0 + k * .9), .3);
+    });
+  }],
+
+  ['q2', '隨堂練習', () => {
+    const p = panel(0);
+    const e = M(p, ['126 = 2', E('a'), ' × 3', E('b'), ' × 7', E('c')], { x: 800, y: 330, size: 72, o: 0 });
+    show(e, .3, .5);
+    show(word(p, '把 126 寫成標準分解式，a、b、c 各是多少？', 800, 450, { size: 32, fill: COL.dim }), .5);
+  }, { ask: done => quiz(BAND, [{
+    id: 'c-std126', prompt: ['126 的標準分解式是 ', $m('2', E('a'), ' × 3', E('b'), ' × 7', E('c')), '。'],
+    build: blanks([{ parts: ['a = ', { box: '1' }, '    b = ', { box: '2' }, '    c = ', { box: '1' }],
+      why: '126 ÷ 2 = 63，63 ÷ 3 = 21，21 ÷ 3 = 7，所以 126 = 2 × 3 × 3 × 7 = 2 × 3² × 7。',
+      hint: '先用短除法：126 ÷ 2 = 63，再看 63 能被誰整除。' }]),
+  }], done) }],
+
+  ['example', '例題：360', (m, D) => {
+    const p = panel(0);
+    show(word(p, '360', 160, 150, { size: 34, weight: 600, fill: COL.dim, anchor: 'start' }), .2);
+    const R = shortDiv(p, [[2, 360], [2, 180], [2, 90], [3, 45], [3, 15], [null, 5]], 330, 170, 100, 48);
+    show(R[0].v, .3, .4);
+    ['s1', 's2', 's3', 's4', 's5'].forEach((mk_, k) => {
+      pop(R[k].d, m(mk_)); draw(R[k].line, m(mk_, .15), .35); show(R[k + 1].v, m(mk_, .55), .3);
+    });
+    const r5 = ring(p, 450, 670, 38); put(r5.parentNode, { o: 0 }); show(r5.parentNode, m('s5', 1.2), .4);
+    show(nm(p, 5, 450, 670, { size: 48, fill: PR }), m('s5', 1.2), .4);
+    // three 2s and two 3s
+    const b2 = path(p, 'M290 140V425', { stroke: COL.task, 'stroke-width': 3 }, { d: 0 });
+    const b3 = path(p, 'M290 445V625', { stroke: COL.task, 'stroke-width': 3 }, { d: 0 });
+    draw(b2, m('std'), .4); draw(b3, m('std', .3), .4);
+    show(word(p, '3 個 2', 270, 290, { size: 26, fill: COL.task, anchor: 'end', weight: 600 }), m('std', .3), .3);
+    show(word(p, '2 個 3', 270, 545, { size: 26, fill: COL.task, anchor: 'end', weight: 600 }), m('std', .6), .3);
+    const A = prodLine(p, [['360', 850], ['=', 960], [['2', E(3)], 1050, PR], ['×', 1135], [['3', E(2)], 1215, PR], ['×', 1300], ['5', 1375, PR]], 330, 64);
+    A.forEach((e, i) => show(e, m('std', .8 + i * .12), .4));
+    // multiply back to check
+    const B = prodLine(p, [['=', 960], ['8', 1050], ['×', 1135], ['9', 1215], ['×', 1300], ['5', 1375]], 450, 60);
+    B.forEach((e, i) => show(e, m('check', .4 + i * .1), .4));
+    const C = prodLine(p, [['=', 960], ['360', 1070]], 570, 60);
+    C.forEach((e, i) => show(e, m('check', 2.4 + i * .1), .4));
+    const ok = word(p, '✓', 1180, 572, { size: 56, fill: COL.good, weight: 700 });
+    pop(ok, m('check', 3));
+  }],
+
+  ['wrap', '重點整理', (m) => {
+    const p = panel(0);
+    const items = [
+      ['質因數：是因數，也是質數', 'w1', null],
+      ['質因數分解：拆成質數連乘，不管怎麼拆結果都一樣', 'w2', null],
+      ['標準分解式：相同質因數寫成次方，由小到大', 'w3', ['84 = 2', E(2), ' × 3 × 7']],
+    ];
+    items.forEach(([str, mark, ex], i) => {
+      const g = G(p, { x: -16, y: 250 + i * 175, o: 0 });
+      mk('circle', { cx: 200, cy: -12, r: 26, fill: PR }, g);
+      T(g, String(i + 1), { x: 200, y: -1, size: 30, fill: '#fff', weight: 700, anchor: 'middle' });
+      T(g, str, { x: 260, size: 36, weight: 600 });
+      if (ex) M(g, ex, { x: 260, y: 62, size: 40, fill: PR, anchor: 'start' });
+      tw(g, { o: 1, x: 0 }, m(mark), .6);
+    });
+  }],
+
+  ['final1', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-std', prompt: ['寫出標準分解式：填入每個質因數的次方。'],
+    build: blanks([
+      { parts: ['90 = 2', E('a'), ' × 3', E('b'), ' × 5', E('c'), '      a = ', { box: '1' }, '   b = ', { box: '2' }, '   c = ', { box: '1' }],
+        why: '90 = 2 × 45 = 2 × 3 × 3 × 5 = 2 × 3² × 5。', hint: '90 ÷ 2 = 45，45 再用 3 去除。' },
+      { parts: ['168 = 2', E('a'), ' × 3', E('b'), ' × 7', E('c'), '      a = ', { box: '3' }, '   b = ', { box: '1' }, '   c = ', { box: '1' }],
+        why: '168 ÷ 2 = 84，84 ÷ 2 = 42，42 ÷ 2 = 21，21 = 3 × 7，所以 168 = 2³ × 3 × 7。', hint: '168 可以連續被 2 除幾次？' },
+    ]),
+  }], done, '本章練習 · 第 1 組，共 2 組') }],
+
+  ['final2', '本章練習', () => { panel(0); }, { ask: done => quiz(SCREEN, [{
+    id: 'p-which', prompt: ['下面哪一個是 60 的標準分解式？'],
+    build: choice([
+      [$m('60 = 2 × 30')],
+      [$m('60 = 1 × 2', E(2), ' × 3 × 5')],
+      [$m('60 = 3 × 2', E(2), ' × 5')],
+      [$m('60 = 2', E(2), ' × 3 × 5')],
+    ], 3, '質因數都是質數、相同的寫成次方、由小排到大：60 = 2² × 3 × 5。', [
+      '30 不是質數，還要再拆：30 = 2 × 3 × 5。',
+      '1 不是質數，標準分解式裡不寫 1。',
+      '質因數要由小排到大，2 應該寫在 3 前面。',
+      null,
+    ]),
+  }], done, '本章練習 · 第 2 組，共 2 組') }],
+
+  ['finish', '完成', () => { panel(0); }, { ask: finishCard }],
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>
